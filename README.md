@@ -1,7 +1,5 @@
 # Radio Globe per phpBB 3.3
 
-# Radio Globe for phpBB 3.3
-
 ![Version](https://img.shields.io/badge/version-1.0.7-105080)
 ![phpBB](https://img.shields.io/badge/phpBB-3.3.17-377a33)
 ![PHP](https://img.shields.io/badge/PHP-8.2.33-377a33)
