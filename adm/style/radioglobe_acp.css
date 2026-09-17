@@ -1,0 +1,19 @@
+/* Radio Globe - ACP */
+.rg-acp-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.rg-acp-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; background: #1a7f45; color: #fff; font-size: 11px; font-weight: bold; }
+.rg-acp-note { border-left: 4px solid #1a7f45; background: #f1f8f4; padding: 10px 14px; margin: 10px 0 16px; }
+.rg-acp-note.rg-warn { border-left-color: #e69114; background: #fdf8f0; }
+.rg-hours { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 6px; max-width: 720px; }
+.rg-hours label { display: flex; align-items: center; gap: 4px; padding: 5px 6px; border: 1px solid #ccd3d9; border-radius: 4px; background: #fff; cursor: pointer; white-space: nowrap; }
+.rg-hours label.rg-on { border-color: #1a7f45; background: #e6f4ec; font-weight: bold; }
+.rg-presets { margin-top: 8px; }
+.rg-presets button { margin-right: 4px; }
+.rg-stats { width: 100%; max-width: 720px; }
+.rg-stats td { padding: 6px 8px; }
+.rg-stats td:first-child { width: 40%; font-weight: bold; }
+.rg-progress { font-size: 1.1em; padding: 12px 14px; }
+.rg-table { width: 100%; }
+.rg-table th, .rg-table td { padding: 6px 8px; vertical-align: top; }
+.rg-group-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; background: #ccc; }
+.rg-comment-text { max-width: 520px; word-wrap: break-word; }
+.rg-small { font-size: 0.9em; color: #666; }

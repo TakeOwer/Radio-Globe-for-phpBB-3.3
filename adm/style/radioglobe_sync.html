@@ -1,0 +1,148 @@
+<!-- INCLUDE overall_header.html -->
+<link rel="stylesheet" href="{RADIOGLOBE_ACP_CSS}" />
+
+<h1>{L_ACP_RADIOGLOBE_TITLE} &raquo; {L_ACP_RADIOGLOBE_SYNC}</h1>
+
+<!-- INCLUDE radioglobe_identity.html -->
+
+<p>{L_RADIOGLOBE_SYNC_INTRO}</p>
+
+<!-- IF not S_STORE_WRITABLE -->
+<div class="errorbox"><p>{L_RADIOGLOBE_STORE_NOT_WRITABLE}</p></div>
+<!-- ENDIF -->
+<!-- IF S_NO_CURL -->
+<div class="errorbox"><p>{L_RADIOGLOBE_NO_CURL}</p></div>
+<!-- ENDIF -->
+<!-- IF SYNC_ERROR -->
+<div class="errorbox"><p><strong>{L_RADIOGLOBE_SYNC_LAST_ERROR}{L_COLON}</strong> {SYNC_ERROR}</p></div>
+<!-- ENDIF -->
+
+<form id="rg_sync_form" method="post" action="{U_ACTION}" data-url="{U_SYNC_STEP}">
+<fieldset>
+	<legend><!-- IF S_SYNC_RUNNING -->{L_RADIOGLOBE_SYNC_RUNNING}<!-- ELSE -->{L_ACP_RADIOGLOBE_SYNC}<!-- ENDIF --></legend>
+
+	<dl>
+		<dt><label>{L_RADIOGLOBE_SYNC_PROGRESS}{L_COLON}</label></dt>
+		<dd>
+			<div class="rg-progress"><div id="rg_bar" class="rg-progress-bar" style="width: {SYNC_PERCENT}%;"><span id="rg_pct">{SYNC_PERCENT}%</span></div></div>
+			<p id="rg_status" class="rg-status"><!-- IF SYNC_PROGRESS -->{SYNC_PROGRESS}<!-- ELSE -->&nbsp;<!-- ENDIF --></p>
+		</dd>
+	</dl>
+
+	<p class="submit-buttons">
+		<input class="button1" type="submit" id="rg_sync_btn" name="start"
+			value="<!-- IF S_SYNC_RUNNING -->{L_RADIOGLOBE_SYNC_RESUME}<!-- ELSE -->{L_RADIOGLOBE_SYNC_START}<!-- ENDIF -->"
+			data-wait="{L_RADIOGLOBE_SYNC_WAIT}" />
+		<!-- IF S_SYNC_RUNNING -->
+		&nbsp;<input class="button2" type="submit" id="rg_cancel_btn" name="cancel" value="{L_RADIOGLOBE_SYNC_CANCEL}" />
+		<!-- ENDIF -->
+	</p>
+	{S_FORM_TOKEN}
+</fieldset>
+</form>
+
+<fieldset>
+	<legend>{L_RADIOGLOBE_SYNC_STATUS}</legend>
+	<table class="table1 rg-stats">
+		<tbody>
+			<tr><td>{L_RADIOGLOBE_SYNC_LAST}</td><td>{SYNC_LAST}</td></tr>
+			<tr><td>{L_RADIOGLOBE_SYNC_COUNT}</td><td>{SYNC_COUNT}</td></tr>
+			<tr><td>{L_RADIOGLOBE_SYNC_PLACES}</td><td>{SYNC_PLACES}</td></tr>
+			<tr><td>{L_RADIOGLOBE_SYNC_DURATION}</td><td>{SYNC_DURATION} {L_SECONDS}</td></tr>
+			<tr><td>{L_RADIOGLOBE_SYNC_HOURS}</td><td><!-- IF SYNC_HOURS -->{SYNC_HOURS}<!-- ELSE -->-<!-- ENDIF --></td></tr>
+			<tr><td>{L_RADIOGLOBE_SYNC_NEXT}</td><td>{SYNC_NEXT}</td></tr>
+		</tbody>
+	</table>
+</fieldset>
+
+<div class="rg-acp-note rg-warn">{L_RADIOGLOBE_SYNC_NOTE}</div>
+
+<style type="text/css">
+.rg-progress { width: 100%; max-width: 480px; height: 22px; border: 1px solid #C5C5C5; border-radius: 4px; background-color: #EFEFEF; overflow: hidden; }
+.rg-progress-bar { width: 0; height: 100%; background-image: linear-gradient(to bottom, #6FBF73 0%, #3F9142 100%); color: #FFFFFF; font-size: 12px; font-weight: bold; line-height: 22px; text-align: center; transition: width .2s linear; white-space: nowrap; overflow: visible; }
+.rg-progress-bar.rg-error { background-image: linear-gradient(to bottom, #E07A7A 0%, #B03A3A 100%); }
+.rg-status { margin: 6px 0 0 0; font-size: 12px; color: #536482; }
+.rg-status.rg-error { color: #9E2A2A; font-weight: bold; }
+</style>
+
+<script type="text/javascript">
+(function () {
+	var form = document.getElementById('rg_sync_form');
+	if (!form || !window.fetch) { return; }
+
+	var bar = document.getElementById('rg_bar'),
+		pct = document.getElementById('rg_pct'),
+		st = document.getElementById('rg_status'),
+		btn = document.getElementById('rg_sync_btn'),
+		cancel = document.getElementById('rg_cancel_btn');
+
+	function lock(state) {
+		btn.disabled = state;
+		if (cancel) { cancel.disabled = state; }
+	}
+
+	function paint(p) {
+		p = Math.max(0, Math.min(100, parseInt(p, 10) || 0));
+		bar.style.width = p + '%';
+		// con pochi punti percentuali la scritta non ci starebbe nella barra
+		bar.style.minWidth = '34px';
+		pct.textContent = p + '%';
+	}
+
+	function fail(msg) {
+		bar.classList.add('rg-error');
+		st.classList.add('rg-error');
+		st.textContent = msg;
+		lock(false);
+	}
+
+	function step(op) {
+		var data = new FormData(form);
+		data.append('op', op);
+
+		fetch(form.getAttribute('data-url').replace(/&amp;/g, '&'), {
+			method: 'POST',
+			body: data,
+			credentials: 'same-origin',
+			headers: { 'X-Requested-With': 'XMLHttpRequest' }
+		})
+		.then(function (r) {
+			return r.text().then(function (body) {
+				try { return JSON.parse(body); }
+				catch (e) {
+					var tmp = document.createElement('div');
+					tmp.innerHTML = body;
+					throw new Error((tmp.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 400) || ('HTTP ' + r.status));
+				}
+			});
+		})
+		.then(function (d) {
+			if (d.error) { fail(d.error); return; }
+
+			paint(d.percent);
+			st.textContent = d.status || '';
+
+			if (d.done) {
+				setTimeout(function () { window.location.href = form.getAttribute('action').replace(/&amp;/g, '&'); }, 1500);
+			} else {
+				setTimeout(function () { step('continue'); }, 150);
+			}
+		})
+		.catch(function (e) { fail('' + (e && e.message ? e.message : e)); });
+	}
+
+	btn.addEventListener('click', function (e) {
+		e.preventDefault();
+		lock(true);
+		bar.classList.remove('rg-error');
+		st.classList.remove('rg-error');
+		paint(0);
+		st.textContent = btn.getAttribute('data-wait');
+		step('start');
+	});
+
+	if (bar.style.width !== '0%') { bar.style.minWidth = '34px'; }
+})();
+</script>
+
+<!-- INCLUDE overall_footer.html -->

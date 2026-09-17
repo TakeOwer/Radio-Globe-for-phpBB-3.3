@@ -1,0 +1,32 @@
+{
+    "name": "salvocortesiano/radioglobe",
+    "type": "phpbb-extension",
+    "description": "Radio dal mondo su un globo 3D in stile Radio Garden, con player in stile Spotify, preferiti, commenti alle stazioni e sincronizzazione da Radio Browser.",
+    "homepage": "https://netshadows.de",
+    "version": "1.0.7",
+    "keywords": [
+        "phpbb",
+        "extension",
+        "radio",
+        "globe",
+        "player"
+    ],
+    "license": "GPL-2.0-only",
+    "authors": [
+        {
+            "name": "Salvo Cortesiano",
+            "homepage": "https://netshadows.de",
+            "email": "info@netshadows.de",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": ">=7.4"
+    },
+    "extra": {
+        "display-name": "Radio Globe",
+        "soft-require": {
+            "phpbb/phpbb": ">=3.3.0,<4.0.0@dev"
+        }
+    }
+}

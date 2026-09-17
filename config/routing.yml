@@ -1,0 +1,61 @@
+salvocortesiano_radioglobe_page:
+    path: /radio
+    defaults: { _controller: salvocortesiano.radioglobe.controller.main:page }
+
+salvocortesiano_radioglobe_places:
+    path: /radio/data/places
+    defaults: { _controller: salvocortesiano.radioglobe.controller.ajax:places }
+    methods: [GET]
+
+salvocortesiano_radioglobe_place:
+    path: /radio/data/place/{place_key}
+    defaults: { _controller: salvocortesiano.radioglobe.controller.ajax:place }
+    requirements:
+        place_key: '[A-Za-z0-9_\-]+'
+    methods: [GET]
+
+salvocortesiano_radioglobe_search:
+    path: /radio/data/search
+    defaults: { _controller: salvocortesiano.radioglobe.controller.ajax:search }
+    methods: [GET]
+
+salvocortesiano_radioglobe_station:
+    path: /radio/data/station/{station_id}
+    defaults: { _controller: salvocortesiano.radioglobe.controller.ajax:station }
+    requirements:
+        station_id: \d+
+    methods: [GET]
+
+salvocortesiano_radioglobe_nowplaying:
+    path: /radio/data/nowplaying/{station_id}
+    defaults: { _controller: salvocortesiano.radioglobe.controller.ajax:nowplaying }
+    requirements:
+        station_id: \d+
+    methods: [GET]
+
+salvocortesiano_radioglobe_favorites:
+    path: /radio/data/favorites
+    defaults: { _controller: salvocortesiano.radioglobe.controller.ajax:favorites }
+    methods: [GET]
+
+salvocortesiano_radioglobe_favorite_toggle:
+    path: /radio/data/favorite
+    defaults: { _controller: salvocortesiano.radioglobe.controller.ajax:favorite_toggle }
+    methods: [POST]
+
+salvocortesiano_radioglobe_comments:
+    path: /radio/data/comments/{station_id}
+    defaults: { _controller: salvocortesiano.radioglobe.controller.ajax:comments }
+    requirements:
+        station_id: \d+
+    methods: [GET]
+
+salvocortesiano_radioglobe_comment_add:
+    path: /radio/data/comment
+    defaults: { _controller: salvocortesiano.radioglobe.controller.ajax:comment_add }
+    methods: [POST]
+
+salvocortesiano_radioglobe_comment_delete:
+    path: /radio/data/comment/delete
+    defaults: { _controller: salvocortesiano.radioglobe.controller.ajax:comment_delete }
+    methods: [POST]

@@ -1,0 +1,51 @@
+<!-- INCLUDE overall_header.html -->
+<link rel="stylesheet" href="{RADIOGLOBE_ACP_CSS}" />
+
+<h1>{L_ACP_RADIOGLOBE_TITLE} &raquo; {L_ACP_RADIOGLOBE_GROUPS}</h1>
+
+<!-- INCLUDE radioglobe_identity.html -->
+
+<p>{L_RADIOGLOBE_GROUPS_INTRO}</p>
+
+<div class="rg-acp-note rg-warn">
+	<strong>{L_RADIOGLOBE_GROUPS_ROLES_TITLE}</strong>
+	<p>{L_RADIOGLOBE_GROUPS_ROLES_NOTE}</p>
+</div>
+
+<form id="radioglobe_groups" method="post" action="{U_ACTION}">
+	<fieldset>
+		<legend>{L_ACP_RADIOGLOBE_GROUPS}</legend>
+
+		<table class="table1 rg-table">
+			<thead>
+				<tr>
+					<th>{L_GROUP}</th>
+					<th style="width: 150px; text-align: center;">{L_RADIOGLOBE_CAN_LISTEN}</th>
+					<th style="width: 190px; text-align: center;">{L_RADIOGLOBE_CAN_FAVORITE}</th>
+					<th style="width: 150px; text-align: center;">{L_RADIOGLOBE_CAN_COMMENT}</th>
+				</tr>
+			</thead>
+			<tbody>
+				<!-- BEGIN groups -->
+				<tr class="<!-- IF groups.S_ROW_COUNT is even -->row1<!-- ELSE -->row2<!-- ENDIF -->">
+					<td>
+						<span class="rg-group-dot"<!-- IF groups.GROUP_COLOUR --> style="background-color: {groups.GROUP_COLOUR};"<!-- ENDIF -->></span>
+						<span<!-- IF groups.GROUP_COLOUR --> style="color: {groups.GROUP_COLOUR};"<!-- ENDIF -->><!-- IF groups.S_SPECIAL --><em>{groups.GROUP_NAME}</em><!-- ELSE --><strong>{groups.GROUP_NAME}</strong><!-- ENDIF --></span>
+						<!-- IF groups.S_ROLE --> <span class="rg-small">({L_RADIOGLOBE_USES_ROLE})</span><!-- ENDIF -->
+					</td>
+					<td style="text-align: center;"><input type="checkbox" name="can_listen[]" value="{groups.GROUP_ID}"<!-- IF groups.S_CAN_LISTEN --> checked="checked"<!-- ENDIF --> /></td>
+					<td style="text-align: center;"><input type="checkbox" name="can_favorite[]" value="{groups.GROUP_ID}"<!-- IF groups.S_CAN_FAVORITE --> checked="checked"<!-- ENDIF --> /></td>
+					<td style="text-align: center;"><input type="checkbox" name="can_comment[]" value="{groups.GROUP_ID}"<!-- IF groups.S_CAN_COMMENT --> checked="checked"<!-- ENDIF --> /></td>
+				</tr>
+				<!-- END groups -->
+			</tbody>
+		</table>
+
+		<p class="submit-buttons">
+			<input type="submit" name="submit" value="{L_SUBMIT}" class="button1" />
+			{S_FORM_TOKEN}
+		</p>
+	</fieldset>
+</form>
+
+<!-- INCLUDE overall_footer.html -->

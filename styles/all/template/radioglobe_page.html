@@ -1,0 +1,44 @@
+<!-- INCLUDE overall_header.html -->
+
+<div class="rg-page" id="rg-page">
+	<div class="rg-stage" id="rg-stage">
+		<div id="rg-globe" class="rg-globe"></div>
+
+		<div class="rg-reticle" id="rg-reticle" aria-hidden="true"><span></span></div>
+		<div class="rg-reticle-label" id="rg-reticle-label" hidden></div>
+		<div id="rg-tooltip" class="rg-tooltip" hidden></div>
+
+		<div class="rg-globe-status" id="rg-globe-status">{L_RADIOGLOBE_LOADING_GLOBE}</div>
+
+		<div class="rg-stage-foot">
+			<span>{RADIOGLOBE_STATION_COUNT} {L_RADIOGLOBE_STATIONS} &middot; {RADIOGLOBE_PLACE_COUNT} {L_RADIOGLOBE_PLACES}</span>
+			<a href="https://www.radio-browser.info/" target="_blank" rel="noopener">{L_RADIOGLOBE_DATA_SOURCE}</a>
+		</div>
+	</div>
+
+	<aside class="rg-side" id="rg-side">
+		<label class="rg-search">
+			<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="7" cy="7" r="4.8"/><path d="M10.6 10.6l3.6 3.6"/></svg>
+			<input id="rg-search" type="search" autocomplete="off" placeholder="{L_RADIOGLOBE_SEARCH_PLACEHOLDER}" />
+		</label>
+
+		<nav class="rg-pills" id="rg-side-tabs">
+			<button type="button" data-view="explore" class="rg-on">{L_RADIOGLOBE_EXPLORE}</button>
+			<!-- IF S_RADIOGLOBE_CAN_FAV --><button type="button" data-view="favorites">{L_RADIOGLOBE_FAVORITES}</button><!-- ENDIF -->
+			<button type="button" data-view="history">{L_RADIOGLOBE_HISTORY}</button>
+		</nav>
+
+		<div class="rg-side-head" id="rg-side-head">
+			<!-- IF S_RADIOGLOBE_EMPTY -->
+			<h2>{L_RADIOGLOBE_EMPTY_TITLE}</h2>
+			<p>{L_RADIOGLOBE_EMPTY_TEXT}</p>
+			<!-- ELSE -->
+			<h2>{L_RADIOGLOBE_WELCOME_TITLE}</h2>
+			<p>{L_RADIOGLOBE_WELCOME_TEXT}</p>
+			<!-- ENDIF -->
+		</div>
+		<div class="rg-side-list" id="rg-side-list"></div>
+	</aside>
+</div>
+
+<!-- INCLUDE overall_footer.html -->

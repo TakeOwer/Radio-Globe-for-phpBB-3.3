@@ -1,0 +1,77 @@
+<div id="rg-player" class="rg-player<!-- IF S_RADIOGLOBE_TRANSLUCENT --> rg-translucent<!-- ENDIF -->" style="--rg-bar-alpha: {RADIOGLOBE_PLAYER_ALPHA};" hidden>
+	<audio id="rg-audio" preload="none"></audio>
+
+	<div class="rg-left">
+		<button type="button" class="rg-cover" id="rg-cover-btn" title="{L_RADIOGLOBE_FULLSCREEN}">
+			<img id="rg-cover" alt="" hidden />
+			<span id="rg-cover-tile" class="rg-tile"></span>
+		</button>
+		<div class="rg-meta">
+			<div class="rg-title-wrap"><span id="rg-title" class="rg-title"></span></div>
+			<div class="rg-sub-wrap"><span id="rg-sub" class="rg-sub"></span></div>
+		</div>
+		<button type="button" id="rg-fav" class="rg-icon rg-fav" hidden></button>
+	</div>
+
+	<div class="rg-center">
+		<div class="rg-controls">
+			<button type="button" id="rg-shuffle" class="rg-icon rg-toggle" title="{L_RADIOGLOBE_SHUFFLE}"></button>
+			<button type="button" id="rg-prev" class="rg-icon" title="{L_RADIOGLOBE_PREV}"></button>
+			<button type="button" id="rg-play" class="rg-play" title="{L_RADIOGLOBE_PLAY}"></button>
+			<button type="button" id="rg-next" class="rg-icon" title="{L_RADIOGLOBE_NEXT}"></button>
+			<button type="button" id="rg-repeat" class="rg-icon rg-toggle" title="{L_RADIOGLOBE_REPEAT}"></button>
+		</div>
+		<div class="rg-progress-row">
+			<span id="rg-elapsed" class="rg-time">0:00</span>
+			<div class="rg-bar" id="rg-bar"><div class="rg-bar-fill"></div></div>
+			<span class="rg-time rg-live"><i></i>{L_RADIOGLOBE_LIVE}</span>
+		</div>
+	</div>
+
+	<div class="rg-right">
+		<button type="button" id="rg-btn-comments" class="rg-icon rg-toggle" title="{L_RADIOGLOBE_COMMENTS}"></button>
+		<button type="button" id="rg-btn-queue" class="rg-icon rg-toggle" title="{L_RADIOGLOBE_QUEUE}"></button>
+		<a id="rg-btn-globe" class="rg-icon" href="#" title="{L_RADIOGLOBE_OPEN_GLOBE}"></a>
+		<button type="button" id="rg-btn-mute" class="rg-icon" title="{L_RADIOGLOBE_MUTE}"></button>
+		<div class="rg-slider rg-volume" id="rg-volume" role="slider" tabindex="0" aria-label="{L_RADIOGLOBE_VOLUME}" aria-valuemin="0" aria-valuemax="100">
+			<div class="rg-slider-track"><div class="rg-slider-fill"></div></div>
+			<div class="rg-slider-knob"></div>
+		</div>
+		<button type="button" id="rg-btn-mini" class="rg-icon" title="{L_RADIOGLOBE_MINI_PLAYER}"></button>
+		<button type="button" id="rg-btn-full" class="rg-icon" title="{L_RADIOGLOBE_FULLSCREEN}"></button>
+	</div>
+
+	<button type="button" id="rg-close" class="rg-close" title="{L_RADIOGLOBE_CLOSE_PLAYER}"></button>
+</div>
+
+<aside id="rg-drawer" class="rg-drawer" hidden aria-live="polite">
+	<header class="rg-drawer-head">
+		<h3 id="rg-drawer-title"></h3>
+		<button type="button" id="rg-drawer-close" class="rg-icon" title="{L_RADIOGLOBE_CLOSE}"></button>
+	</header>
+	<nav class="rg-pills" id="rg-drawer-tabs">
+		<button type="button" data-view="queue">{L_RADIOGLOBE_QUEUE}</button>
+		<button type="button" data-view="favorites" id="rg-tab-favorites">{L_RADIOGLOBE_FAVORITES}</button>
+		<button type="button" data-view="history">{L_RADIOGLOBE_HISTORY}</button>
+		<button type="button" data-view="comments" id="rg-tab-comments">{L_RADIOGLOBE_COMMENTS}</button>
+	</nav>
+	<div id="rg-drawer-body" class="rg-drawer-body"></div>
+</aside>
+
+<div id="rg-mini" class="rg-mini" hidden></div>
+
+<div id="rg-full" class="rg-full" hidden>
+	<div class="rg-full-bg" id="rg-full-bg"></div>
+	<button type="button" class="rg-icon rg-full-close" id="rg-full-close" title="{L_RADIOGLOBE_CLOSE}"></button>
+	<div class="rg-full-inner">
+		<div class="rg-full-art"><img id="rg-full-cover" alt="" hidden /><span id="rg-full-tile" class="rg-tile"></span></div>
+		<div class="rg-full-meta">
+			<div class="rg-full-station" id="rg-full-station"></div>
+			<h2 id="rg-full-title"></h2>
+			<p id="rg-full-sub"></p>
+			<div class="rg-full-controls" id="rg-full-controls"></div>
+		</div>
+	</div>
+</div>
+
+<div id="rg-toast" class="rg-toast" role="status" hidden></div>

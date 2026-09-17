@@ -1,0 +1,99 @@
+parameters:
+    tables.radioglobe_stations: '%core.table_prefix%radioglobe_stations'
+    tables.radioglobe_places: '%core.table_prefix%radioglobe_places'
+    tables.radioglobe_favorites: '%core.table_prefix%radioglobe_favorites'
+    tables.radioglobe_comments: '%core.table_prefix%radioglobe_comments'
+
+services:
+    salvocortesiano.radioglobe.station_repository:
+        class: salvocortesiano\radioglobe\repository\station_repository
+        arguments:
+            - '@dbal.conn'
+            - '%tables.radioglobe_stations%'
+            - '%tables.radioglobe_places%'
+
+    salvocortesiano.radioglobe.favorite_repository:
+        class: salvocortesiano\radioglobe\repository\favorite_repository
+        arguments:
+            - '@dbal.conn'
+            - '%tables.radioglobe_favorites%'
+            - '%tables.radioglobe_stations%'
+
+    salvocortesiano.radioglobe.comment_repository:
+        class: salvocortesiano\radioglobe\repository\comment_repository
+        arguments:
+            - '@dbal.conn'
+            - '%tables.radioglobe_comments%'
+            - '%tables.radioglobe_stations%'
+
+    salvocortesiano.radioglobe.http_client:
+        class: salvocortesiano\radioglobe\service\http_client
+
+    salvocortesiano.radioglobe.station_sync:
+        class: salvocortesiano\radioglobe\service\station_sync
+        arguments:
+            - '@config'
+            - '@config_text'
+            - '@dbal.conn'
+            - '@cache.driver'
+            - '@salvocortesiano.radioglobe.http_client'
+            - '@salvocortesiano.radioglobe.station_repository'
+            - '%core.root_path%'
+            - '%tables.radioglobe_favorites%'
+            - '%tables.radioglobe_comments%'
+
+    salvocortesiano.radioglobe.nowplaying:
+        class: salvocortesiano\radioglobe\service\nowplaying
+        arguments:
+            - '@config'
+            - '@cache.driver'
+            - '@salvocortesiano.radioglobe.http_client'
+
+    salvocortesiano.radioglobe.controller.main:
+        class: salvocortesiano\radioglobe\controller\main
+        arguments:
+            - '@config'
+            - '@template'
+            - '@user'
+            - '@auth'
+            - '@controller.helper'
+            - '@salvocortesiano.radioglobe.station_repository'
+
+    salvocortesiano.radioglobe.controller.ajax:
+        class: salvocortesiano\radioglobe\controller\ajax
+        arguments:
+            - '@config'
+            - '@user'
+            - '@auth'
+            - '@request'
+            - '@cache.driver'
+            - '@salvocortesiano.radioglobe.station_repository'
+            - '@salvocortesiano.radioglobe.favorite_repository'
+            - '@salvocortesiano.radioglobe.comment_repository'
+            - '@salvocortesiano.radioglobe.nowplaying'
+            - '%core.root_path%'
+            - '%core.php_ext%'
+
+    salvocortesiano.radioglobe.listener:
+        class: salvocortesiano\radioglobe\event\listener
+        arguments:
+            - '@template'
+            - '@user'
+            - '@auth'
+            - '@controller.helper'
+            - '@config'
+            - '@salvocortesiano.radioglobe.favorite_repository'
+            - '@salvocortesiano.radioglobe.comment_repository'
+            - '%core.root_path%'
+        tags:
+            - { name: event.listener }
+
+    salvocortesiano.radioglobe.cron.sync_stations:
+        class: salvocortesiano\radioglobe\cron\sync_stations
+        arguments:
+            - '@config'
+            - '@salvocortesiano.radioglobe.station_sync'
+        calls:
+            - [set_name, [cron.task.salvocortesiano.radioglobe.sync_stations]]
+        tags:
+            - { name: cron.task }

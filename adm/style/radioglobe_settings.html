@@ -1,0 +1,299 @@
+<!-- INCLUDE overall_header.html -->
+<link rel="stylesheet" href="{RADIOGLOBE_ACP_CSS}" />
+
+<h1>{L_ACP_RADIOGLOBE_TITLE} &raquo; {L_ACP_RADIOGLOBE_SETTINGS}</h1>
+
+<!-- INCLUDE radioglobe_identity.html -->
+
+<p>{L_RADIOGLOBE_SETTINGS_INTRO}</p>
+
+<!-- IF S_RADIOGLOBE_NO_CURL -->
+<div class="errorbox"><p>{L_RADIOGLOBE_NO_CURL}</p></div>
+<!-- ENDIF -->
+
+<form id="radioglobe_settings" method="post" action="{U_ACTION}">
+
+	<fieldset>
+		<legend>{L_RADIOGLOBE_SET_SOURCE}</legend>
+		<div class="rg-acp-note">{L_RADIOGLOBE_SOURCE_NOTE}</div>
+
+		<dl>
+			<dt><label for="radioglobe_https_only">{L_RADIOGLOBE_HTTPS_ONLY}:</label><br /><span>{L_RADIOGLOBE_HTTPS_ONLY_EXPLAIN}</span></dt>
+			<dd>
+				<label><input type="radio" class="radio" id="radioglobe_https_only" name="radioglobe_https_only" value="1"<!-- IF S_RADIOGLOBE_HTTPS_ONLY --> checked="checked"<!-- ENDIF --> /> {L_YES}</label>
+				<label><input type="radio" class="radio" name="radioglobe_https_only" value="0"<!-- IF not S_RADIOGLOBE_HTTPS_ONLY --> checked="checked"<!-- ENDIF --> /> {L_NO}</label>
+			</dd>
+		</dl>
+		<dl>
+			<dt><label for="radioglobe_exclude_hls">{L_RADIOGLOBE_EXCLUDE_HLS}:</label><br /><span>{L_RADIOGLOBE_EXCLUDE_HLS_EXPLAIN}</span></dt>
+			<dd>
+				<label><input type="radio" class="radio" id="radioglobe_exclude_hls" name="radioglobe_exclude_hls" value="1"<!-- IF S_RADIOGLOBE_EXCLUDE_HLS --> checked="checked"<!-- ENDIF --> /> {L_YES}</label>
+				<label><input type="radio" class="radio" name="radioglobe_exclude_hls" value="0"<!-- IF not S_RADIOGLOBE_EXCLUDE_HLS --> checked="checked"<!-- ENDIF --> /> {L_NO}</label>
+			</dd>
+		</dl>
+		<dl>
+			<dt><label for="radioglobe_tags">{L_RADIOGLOBE_TAGS}:</label><br /><span>{L_RADIOGLOBE_TAGS_EXPLAIN}</span></dt>
+			<dd><textarea id="radioglobe_tags" name="radioglobe_tags" rows="5" cols="45" placeholder="rock, jazz, classical, news">{RADIOGLOBE_TAGS}</textarea></dd>
+		</dl>
+		<dl>
+			<dt><label for="radioglobe_min_bitrate">{L_RADIOGLOBE_MIN_BITRATE}:</label><br /><span>{L_RADIOGLOBE_MIN_BITRATE_EXPLAIN}</span></dt>
+			<dd><input type="number" min="0" max="1024" id="radioglobe_min_bitrate" name="radioglobe_min_bitrate" value="{RADIOGLOBE_MIN_BITRATE}" /> kbps</dd>
+		</dl>
+		<dl>
+			<dt><label for="radioglobe_max_stations">{L_RADIOGLOBE_MAX_STATIONS}:</label><br /><span>{L_RADIOGLOBE_MAX_STATIONS_EXPLAIN}</span></dt>
+			<dd><input type="number" min="500" max="100000" step="500" id="radioglobe_max_stations" name="radioglobe_max_stations" value="{RADIOGLOBE_MAX_STATIONS}" /></dd>
+		</dl>
+		<dl>
+			<dt><label for="radioglobe_cluster_grid">{L_RADIOGLOBE_CLUSTER_GRID}:</label><br /><span>{L_RADIOGLOBE_CLUSTER_GRID_EXPLAIN}</span></dt>
+			<dd><input type="number" min="5" max="200" id="radioglobe_cluster_grid" name="radioglobe_cluster_grid" value="{RADIOGLOBE_CLUSTER_GRID}" /></dd>
+		</dl>
+		<dl>
+			<dt><label for="radioglobe_api_server">{L_RADIOGLOBE_API_SERVER}:</label><br /><span>{L_RADIOGLOBE_API_SERVER_EXPLAIN}</span></dt>
+			<dd><input type="text" class="inputbox autowidth" size="40" id="radioglobe_api_server" name="radioglobe_api_server" value="{RADIOGLOBE_API_SERVER}" placeholder="de1.api.radio-browser.info" /></dd>
+		</dl>
+	</fieldset>
+
+	<fieldset>
+		<legend>{L_RADIOGLOBE_SET_CRON}</legend>
+
+		<dl>
+			<dt><label for="radioglobe_cron_enabled">{L_RADIOGLOBE_CRON_ENABLED}:</label><br /><span>{L_RADIOGLOBE_CRON_ENABLED_EXPLAIN}</span></dt>
+			<dd>
+				<label><input type="radio" class="radio" id="radioglobe_cron_enabled" name="radioglobe_cron_enabled" value="1"<!-- IF S_RADIOGLOBE_CRON_ENABLED --> checked="checked"<!-- ENDIF --> /> {L_YES}</label>
+				<label><input type="radio" class="radio" name="radioglobe_cron_enabled" value="0"<!-- IF not S_RADIOGLOBE_CRON_ENABLED --> checked="checked"<!-- ENDIF --> /> {L_NO}</label>
+			</dd>
+		</dl>
+		<dl>
+			<dt><label>{L_RADIOGLOBE_CRON_HOURS}:</label><br /><span>{L_RADIOGLOBE_CRON_HOURS_EXPLAIN} <strong>{RADIOGLOBE_BOARD_TZ}</strong></span></dt>
+			<dd>
+				<div class="rg-hours" id="rg-hours">
+					<!-- BEGIN cron_hours -->
+					<label<!-- IF cron_hours.S_CHECKED --> class="rg-on"<!-- ENDIF -->><input type="checkbox" name="radioglobe_cron_hours[]" value="{cron_hours.HOUR}"<!-- IF cron_hours.S_CHECKED --> checked="checked"<!-- ENDIF --> /> {cron_hours.LABEL}</label>
+					<!-- END cron_hours -->
+				</div>
+				<div class="rg-presets">
+					<span class="rg-small">{L_RADIOGLOBE_CRON_PRESETS}:</span>
+					<button type="button" class="button2" data-rg-every="24">{L_RADIOGLOBE_EVERY_24}</button>
+					<button type="button" class="button2" data-rg-every="12">{L_RADIOGLOBE_EVERY_12}</button>
+					<button type="button" class="button2" data-rg-every="6">{L_RADIOGLOBE_EVERY_6}</button>
+					<br /><span class="rg-small">{L_RADIOGLOBE_CRON_PRESETS_EXPLAIN}</span>
+				</div>
+			</dd>
+		</dl>
+	</fieldset>
+
+	<fieldset>
+		<legend>{L_RADIOGLOBE_SET_PLAYER}</legend>
+
+		<dl>
+			<dt><label for="radioglobe_player_everywhere">{L_RADIOGLOBE_PLAYER_EVERYWHERE}:</label><br /><span>{L_RADIOGLOBE_PLAYER_EVERYWHERE_EXPLAIN}</span></dt>
+			<dd>
+				<label><input type="radio" class="radio" id="radioglobe_player_everywhere" name="radioglobe_player_everywhere" value="1"<!-- IF S_RADIOGLOBE_PLAYER_EVERYWHERE --> checked="checked"<!-- ENDIF --> /> {L_YES}</label>
+				<label><input type="radio" class="radio" name="radioglobe_player_everywhere" value="0"<!-- IF not S_RADIOGLOBE_PLAYER_EVERYWHERE --> checked="checked"<!-- ENDIF --> /> {L_NO}</label>
+			</dd>
+		</dl>
+		<dl>
+			<dt><label for="radioglobe_player_opacity">{L_RADIOGLOBE_PLAYER_OPACITY}:</label><br /><span>{L_RADIOGLOBE_PLAYER_OPACITY_EXPLAIN}</span></dt>
+			<dd>
+				<div class="rgp-slider">
+					<input type="range" id="radioglobe_player_opacity" name="radioglobe_player_opacity" min="10" max="100" step="1" value="{RADIOGLOBE_PLAYER_OPACITY}" />
+					<output id="rgp-value" for="radioglobe_player_opacity">{RADIOGLOBE_PLAYER_OPACITY}%</output>
+				</div>
+			</dd>
+		</dl>
+		<dl>
+			<dt><label>{L_RADIOGLOBE_PREVIEW}:</label><br /><span>{L_RADIOGLOBE_PREVIEW_NOTE}</span></dt>
+			<dd>
+				<link rel="stylesheet" href="{RADIOGLOBE_PLAYER_CSS}" />
+				<div class="rgp-stage" id="rgp-stage">
+					<div class="rgp-feed">
+						<div class="rgp-header"><span></span><em></em><em></em><em></em></div>
+						<div class="rgp-banner" style="background-image: url('{RADIOGLOBE_PREVIEW_IMAGE}');"></div>
+					<div class="rgp-post"><div class="rgp-avatar" style="--h:140"></div><div class="rgp-lines"><b style="width:38%"></b><i></i><i style="width:92%"></i><i style="width:71%"></i></div></div>
+					<div class="rgp-post"><div class="rgp-avatar" style="--h:20"></div><div class="rgp-lines"><b style="width:52%"></b><i></i><i style="width:84%"></i><i style="width:63%"></i></div></div>
+					<div class="rgp-post"><div class="rgp-avatar" style="--h:260"></div><div class="rgp-lines"><b style="width:30%"></b><i></i><i style="width:95%"></i><i style="width:58%"></i></div></div>
+					<div class="rgp-post"><div class="rgp-avatar" style="--h:320"></div><div class="rgp-lines"><b style="width:45%"></b><i></i><i style="width:77%"></i><i style="width:88%"></i></div></div>
+					<div class="rgp-post"><div class="rgp-avatar" style="--h:200"></div><div class="rgp-lines"><b style="width:35%"></b><i></i><i style="width:90%"></i><i style="width:66%"></i></div></div>
+						<div class="rgp-banner" style="background-image: url('{RADIOGLOBE_PREVIEW_IMAGE}'); background-position: 30% 60%;"></div>
+					<div class="rgp-post"><div class="rgp-avatar" style="--h:140"></div><div class="rgp-lines"><b style="width:38%"></b><i></i><i style="width:92%"></i><i style="width:71%"></i></div></div>
+					<div class="rgp-post"><div class="rgp-avatar" style="--h:20"></div><div class="rgp-lines"><b style="width:52%"></b><i></i><i style="width:84%"></i><i style="width:63%"></i></div></div>
+					<div class="rgp-post"><div class="rgp-avatar" style="--h:260"></div><div class="rgp-lines"><b style="width:30%"></b><i></i><i style="width:95%"></i><i style="width:58%"></i></div></div>
+					<div class="rgp-post"><div class="rgp-avatar" style="--h:320"></div><div class="rgp-lines"><b style="width:45%"></b><i></i><i style="width:77%"></i><i style="width:88%"></i></div></div>
+					<div class="rgp-post"><div class="rgp-avatar" style="--h:200"></div><div class="rgp-lines"><b style="width:35%"></b><i></i><i style="width:90%"></i><i style="width:66%"></i></div></div>
+					</div>
+
+					<div class="rg-player rgp-player" id="rgp-player" style="--rg-bar-alpha: 1;">
+						<div class="rg-left">
+							<span class="rg-cover"><span class="rg-tile" style="--rg-hue: 145;">RG</span></span>
+							<div class="rg-meta">
+								<div class="rg-title-wrap"><span class="rg-title">Magnetic</span></div>
+								<div class="rg-sub-wrap"><span class="rg-sub">The Bausa &middot; Radio Globe</span></div>
+							</div>
+							<span class="rg-icon rg-fav"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.5"/><path d="M8 5v6M5 8h6"/></svg></span>
+						</div>
+						<div class="rg-center">
+							<div class="rg-controls">
+								<span class="rg-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 4.5h2.2c1.2 0 2 .5 2.7 1.5l2.2 3.5c.6 1 1.5 1.5 2.7 1.5h2.2"/><path d="M1.5 11h2.2c.9 0 1.6-.3 2.2-.9"/><path d="M9.4 5.4c.6-.6 1.3-.9 2.2-.9h2.2"/><path d="M12.3 3l1.7 1.5-1.7 1.5"/><path d="M12.3 9.5l1.7 1.5-1.7 1.5"/></svg></span><span class="rg-icon"><svg viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="1.6" height="11" rx=".6" fill="currentColor"/><path d="M13.2 3.3v9.4c0 .5-.6.8-1 .5L5.3 8.5a.6.6 0 0 1 0-1l6.9-4.7c.4-.3 1-.1 1 .5z" fill="currentColor"/></svg></span><span class="rg-play"><svg viewBox="0 0 16 16"><rect x="3.5" y="2.5" width="3" height="11" rx=".8" fill="currentColor"/><rect x="9.5" y="2.5" width="3" height="11" rx=".8" fill="currentColor"/></svg></span><span class="rg-icon"><svg viewBox="0 0 16 16"><rect x="11.9" y="2.5" width="1.6" height="11" rx=".6" fill="currentColor"/><path d="M2.8 3.3v9.4c0 .5.6.8 1 .5l6.9-4.7a.6.6 0 0 0 0-1L3.8 2.8c-.4-.3-1-.1-1 .5z" fill="currentColor"/></svg></span><span class="rg-icon rg-on"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8V6.5A2.5 2.5 0 0 1 5 4h8"/><path d="M11 2l2 2-2 2"/><path d="M13.5 8v1.5A2.5 2.5 0 0 1 11 12H3"/><path d="M5 14l-2-2 2-2"/></svg></span>
+							</div>
+							<div class="rg-progress-row">
+								<span class="rg-time">1:01</span>
+								<div class="rg-bar"><div class="rg-bar-fill"></div></div>
+								<span class="rg-time rg-live"><i></i>{L_RADIOGLOBE_LIVE}</span>
+							</div>
+						</div>
+						<div class="rg-right">
+							<span class="rg-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 3h11a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H8l-3.5 2.5V11h-2a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M5 6h6M5 8.2h3.5"/></svg></span><span class="rg-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3.5h12M2 7.5h12M2 11.5h6"/><path d="M10.5 10v3.4l2.9-1.7z" fill="currentColor"/></svg></span><span class="rg-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.5"/><path d="M1.5 8h13"/><path d="M8 1.5c1.9 1.9 2.8 4.1 2.8 6.5S9.9 12.6 8 14.5C6.1 12.6 5.2 10.4 5.2 8S6.1 3.4 8 1.5z"/></svg></span><span class="rg-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1.8 6h2.4L7.8 3v10L4.2 10H1.8z"/><path d="M10.4 5.6a3.4 3.4 0 0 1 0 4.8"/><path d="M12.4 3.6a6.2 6.2 0 0 1 0 8.8"/></svg></span>
+							<div class="rg-slider rg-volume"><div class="rg-slider-track"><div class="rg-slider-fill" style="width: 70%;"></div></div><div class="rg-slider-knob" style="left: 70%;"></div></div>
+							<span class="rg-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="3" width="13" height="10" rx="1.5"/><rect x="8.2" y="8" width="4.3" height="3" rx=".5" fill="currentColor" stroke="none"/></svg></span><span class="rg-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 5.5v-4h4M10.5 1.5h4v4M14.5 10.5v4h-4M5.5 14.5h-4v-4"/></svg></span>
+						</div>
+					</div>
+				</div>
+			</dd>
+		</dl>
+		<dl>
+			<dt><label for="radioglobe_nav_link">{L_RADIOGLOBE_NAV_LINK}:</label></dt>
+			<dd>
+				<label><input type="radio" class="radio" id="radioglobe_nav_link" name="radioglobe_nav_link" value="1"<!-- IF S_RADIOGLOBE_NAV_LINK --> checked="checked"<!-- ENDIF --> /> {L_YES}</label>
+				<label><input type="radio" class="radio" name="radioglobe_nav_link" value="0"<!-- IF not S_RADIOGLOBE_NAV_LINK --> checked="checked"<!-- ENDIF --> /> {L_NO}</label>
+			</dd>
+		</dl>
+		<dl>
+			<dt><label for="radioglobe_nowplaying">{L_RADIOGLOBE_NOWPLAYING}:</label><br /><span>{L_RADIOGLOBE_NOWPLAYING_EXPLAIN}</span></dt>
+			<dd>
+				<label><input type="radio" class="radio" id="radioglobe_nowplaying" name="radioglobe_nowplaying" value="1"<!-- IF S_RADIOGLOBE_NOWPLAYING --> checked="checked"<!-- ENDIF --> /> {L_YES}</label>
+				<label><input type="radio" class="radio" name="radioglobe_nowplaying" value="0"<!-- IF not S_RADIOGLOBE_NOWPLAYING --> checked="checked"<!-- ENDIF --> /> {L_NO}</label>
+			</dd>
+		</dl>
+		<dl>
+			<dt><label for="radioglobe_covers">{L_RADIOGLOBE_COVERS}:</label><br /><span>{L_RADIOGLOBE_COVERS_EXPLAIN}</span></dt>
+			<dd>
+				<label><input type="radio" class="radio" id="radioglobe_covers" name="radioglobe_covers" value="1"<!-- IF S_RADIOGLOBE_COVERS --> checked="checked"<!-- ENDIF --> /> {L_YES}</label>
+				<label><input type="radio" class="radio" name="radioglobe_covers" value="0"<!-- IF not S_RADIOGLOBE_COVERS --> checked="checked"<!-- ENDIF --> /> {L_NO}</label>
+			</dd>
+		</dl>
+		<dl>
+			<dt><label for="radioglobe_texture">{L_RADIOGLOBE_TEXTURE}:</label></dt>
+			<dd>
+				<select id="radioglobe_texture" name="radioglobe_texture">
+					<option value="dark"<!-- IF RADIOGLOBE_TEXTURE == 'dark' --> selected="selected"<!-- ENDIF -->>{L_RADIOGLOBE_TEXTURE_DARK}</option>
+					<option value="night"<!-- IF RADIOGLOBE_TEXTURE == 'night' --> selected="selected"<!-- ENDIF -->>{L_RADIOGLOBE_TEXTURE_NIGHT}</option>
+					<option value="marble"<!-- IF RADIOGLOBE_TEXTURE == 'marble' --> selected="selected"<!-- ENDIF -->>{L_RADIOGLOBE_TEXTURE_MARBLE}</option>
+				</select>
+			</dd>
+		</dl>
+		<dl>
+			<dt><label for="radioglobe_autorotate">{L_RADIOGLOBE_AUTOROTATE}:</label></dt>
+			<dd>
+				<label><input type="radio" class="radio" id="radioglobe_autorotate" name="radioglobe_autorotate" value="1"<!-- IF S_RADIOGLOBE_AUTOROTATE --> checked="checked"<!-- ENDIF --> /> {L_YES}</label>
+				<label><input type="radio" class="radio" name="radioglobe_autorotate" value="0"<!-- IF not S_RADIOGLOBE_AUTOROTATE --> checked="checked"<!-- ENDIF --> /> {L_NO}</label>
+			</dd>
+		</dl>
+	</fieldset>
+
+	<fieldset>
+		<legend>{L_RADIOGLOBE_SET_COMMENTS}</legend>
+
+		<dl>
+			<dt><label for="radioglobe_comments_enabled">{L_RADIOGLOBE_COMMENTS_ENABLED}:</label></dt>
+			<dd>
+				<label><input type="radio" class="radio" id="radioglobe_comments_enabled" name="radioglobe_comments_enabled" value="1"<!-- IF S_RADIOGLOBE_COMMENTS_ENABLED --> checked="checked"<!-- ENDIF --> /> {L_YES}</label>
+				<label><input type="radio" class="radio" name="radioglobe_comments_enabled" value="0"<!-- IF not S_RADIOGLOBE_COMMENTS_ENABLED --> checked="checked"<!-- ENDIF --> /> {L_NO}</label>
+			</dd>
+		</dl>
+		<dl>
+			<dt><label for="radioglobe_comment_maxlen">{L_RADIOGLOBE_COMMENT_MAXLEN}:</label></dt>
+			<dd><input type="number" min="50" max="5000" id="radioglobe_comment_maxlen" name="radioglobe_comment_maxlen" value="{RADIOGLOBE_COMMENT_MAXLEN}" /></dd>
+		</dl>
+		<dl>
+			<dt><label for="radioglobe_comments_per_page">{L_RADIOGLOBE_COMMENTS_PER_PAGE}:</label></dt>
+			<dd><input type="number" min="5" max="100" id="radioglobe_comments_per_page" name="radioglobe_comments_per_page" value="{RADIOGLOBE_COMMENTS_PER_PAGE}" /></dd>
+		</dl>
+		<dl>
+			<dt><label for="radioglobe_comment_flood">{L_RADIOGLOBE_COMMENT_FLOOD}:</label><br /><span>{L_RADIOGLOBE_COMMENT_FLOOD_EXPLAIN}</span></dt>
+			<dd><input type="number" min="0" max="3600" id="radioglobe_comment_flood" name="radioglobe_comment_flood" value="{RADIOGLOBE_COMMENT_FLOOD}" /> {L_RADIOGLOBE_SECONDS}</dd>
+		</dl>
+	</fieldset>
+
+	<fieldset class="submit-buttons">
+		<input class="button1" type="submit" id="submit" name="submit" value="{L_SUBMIT}" />&nbsp;
+		<input class="button2" type="reset" id="reset" name="reset" value="{L_RESET}" />
+		{S_FORM_TOKEN}
+	</fieldset>
+</form>
+
+
+<style type="text/css">
+.rgp-slider { display: flex; align-items: center; gap: 12px; max-width: 520px; }
+.rgp-slider input[type=range] { flex: 1; accent-color: #1db954; cursor: pointer; height: 22px; }
+.rgp-slider output { min-width: 48px; padding: 2px 8px; border-radius: 10px; background: #1a7f45; color: #fff; font-weight: bold; text-align: center; font-variant-numeric: tabular-nums; }
+.rgp-stage { position: relative; height: 260px; max-width: 1100px; overflow: hidden; border-radius: 8px; border: 1px solid #ccd3d9; background: #e9edf1; }
+.rgp-feed { position: absolute; left: 0; right: 0; top: 0; padding: 12px; animation: rgp-scroll 26s linear infinite; }
+@keyframes rgp-scroll { from { transform: translateY(0); } to { transform: translateY(-50%); } }
+.rgp-stage:hover .rgp-feed { animation-play-state: paused; }
+.rgp-header { display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 14px; margin-bottom: 10px; border-radius: 6px; background: linear-gradient(90deg, #105289, #2a86c8); }
+.rgp-header span { width: 120px; height: 14px; border-radius: 4px; background: rgba(255,255,255,.9); }
+.rgp-header em { width: 60px; height: 10px; border-radius: 4px; background: rgba(255,255,255,.5); }
+.rgp-banner { height: 120px; margin-bottom: 10px; border-radius: 6px; background-size: cover; background-position: center; }
+.rgp-post { display: flex; gap: 12px; padding: 12px; margin-bottom: 10px; border-radius: 6px; background: #fff; }
+.rgp-avatar { flex: 0 0 42px; height: 42px; border-radius: 50%; background: hsl(var(--h), 60%, 55%); }
+.rgp-lines { flex: 1; display: flex; flex-direction: column; gap: 7px; }
+.rgp-lines b, .rgp-lines i { display: block; height: 9px; border-radius: 4px; background: #c9d2db; }
+.rgp-lines b { height: 11px; background: #105289; }
+.rgp-player { position: absolute !important; left: 0; right: 0; bottom: 0; z-index: 2 !important; }
+.rgp-player .rg-icon, .rgp-player .rg-play { cursor: default; }
+@media (prefers-reduced-motion: reduce) { .rgp-feed { animation: none; } }
+</style>
+
+<script>
+(function () {
+	var input = document.getElementById('radioglobe_player_opacity');
+	var output = document.getElementById('rgp-value');
+	var player = document.getElementById('rgp-player');
+	if (!input || !player) { return; }
+
+	function apply() {
+		var v = Math.max(10, Math.min(100, parseInt(input.value, 10) || 100));
+		output.textContent = v + '%';
+		player.style.setProperty('--rg-bar-alpha', (v / 100).toFixed(2));
+		player.classList.toggle('rg-translucent', v < 100);
+	}
+
+	input.addEventListener('input', apply);
+	input.addEventListener('change', apply);
+	apply();
+})();
+</script>
+<script>
+(function () {
+	var box = document.getElementById('rg-hours');
+	if (!box) { return; }
+	var inputs = box.querySelectorAll('input[type=checkbox]');
+
+	function paint() {
+		for (var i = 0; i < inputs.length; i++) {
+			inputs[i].parentNode.className = inputs[i].checked ? 'rg-on' : '';
+		}
+	}
+
+	box.addEventListener('change', paint);
+
+	var buttons = document.querySelectorAll('[data-rg-every]');
+	for (var b = 0; b < buttons.length; b++) {
+		buttons[b].addEventListener('click', function () {
+			var every = parseInt(this.getAttribute('data-rg-every'), 10);
+			var first = -1;
+			for (var i = 0; i < inputs.length; i++) {
+				if (inputs[i].checked) { first = i; break; }
+			}
+			if (first < 0) { first = 4; }
+			first = first % every;
+			for (var j = 0; j < inputs.length; j++) {
+				inputs[j].checked = (j % every === first);
+			}
+			paint();
+		});
+	}
+})();
+</script>
+
+<!-- INCLUDE overall_footer.html -->

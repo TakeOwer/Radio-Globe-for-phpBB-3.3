@@ -1,0 +1,48 @@
+<!-- INCLUDE overall_header.html -->
+<link rel="stylesheet" href="{RADIOGLOBE_ACP_CSS}" />
+
+<h1>{L_ACP_RADIOGLOBE_TITLE} &raquo; {L_ACP_RADIOGLOBE_COMMENTS}</h1>
+
+<!-- INCLUDE radioglobe_identity.html -->
+
+<p>{L_RADIOGLOBE_COMMENTS_INTRO} <strong>{TOTAL_COMMENTS}</strong></p>
+
+<form id="radioglobe_comments" method="post" action="{U_ACTION}">
+	<!-- IF .comments -->
+	<table class="table1 rg-table">
+		<thead>
+			<tr>
+				<th style="width: 30px;"></th>
+				<th>{L_RADIOGLOBE_COMMENT}</th>
+				<th style="width: 190px;">{L_RADIOGLOBE_STATION}</th>
+				<th style="width: 150px;">{L_AUTHOR}</th>
+				<th style="width: 150px;">{L_TIME}</th>
+			</tr>
+		</thead>
+		<tbody>
+			<!-- BEGIN comments -->
+			<tr class="<!-- IF comments.S_ROW_COUNT is even -->row1<!-- ELSE -->row2<!-- ENDIF -->">
+				<td><input type="checkbox" name="mark[]" value="{comments.ID}" /></td>
+				<td class="rg-comment-text">{comments.TEXT}</td>
+				<td>{comments.STATION}<!-- IF comments.COUNTRY --><br /><span class="rg-small">{comments.COUNTRY}</span><!-- ENDIF --></td>
+				<td>{comments.USER}<br /><span class="rg-small">{comments.IP}</span></td>
+				<td>{comments.TIME}</td>
+			</tr>
+			<!-- END comments -->
+		</tbody>
+	</table>
+
+	<div class="pagination">
+		<!-- INCLUDE pagination.html -->
+	</div>
+
+	<fieldset class="quick">
+		<input class="button2" type="submit" name="delete_marked" value="{L_DELETE_MARKED}" onclick="return confirm('{LA_RADIOGLOBE_COMMENTS_DELETE_CONFIRM}');" />
+		{S_FORM_TOKEN}
+	</fieldset>
+	<!-- ELSE -->
+	<div class="successbox"><p>{L_RADIOGLOBE_NO_COMMENTS}</p></div>
+	<!-- ENDIF -->
+</form>
+
+<!-- INCLUDE overall_footer.html -->
