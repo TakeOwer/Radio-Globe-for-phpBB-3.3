@@ -180,6 +180,28 @@ class ajax
 
 		$term = html_entity_decode($this->request->variable('q', '', true), ENT_QUOTES, 'UTF-8');
 
+		// coordinate ("45.46, 9.19", "45°27'N 9°11'E"...): le stazioni piu' vicine, dalla piu' vicina
+		$coords = station_repository::parse_coordinates($term);
+
+		if ($coords !== null)
+		{
+			$rows = $this->stations->search_near($coords[0], $coords[1]);
+			$list = [];
+
+			foreach ($rows as $row)
+			{
+				$item = station_repository::to_public($row);
+				$item['distance'] = (int) round($row['distance_km']);
+				$list[] = $item;
+			}
+
+			return new JsonResponse([
+				'success'	=> true,
+				'coords'	=> ['lat' => round($coords[0], 5), 'lng' => round($coords[1], 5)],
+				'stations'	=> $list,
+			]);
+		}
+
 		return new JsonResponse([
 			'success'	=> true,
 			'stations'	=> $this->public_list($this->stations->search($term)),

@@ -59,8 +59,14 @@ class main
 			'dark'		=> 'earth-dark.jpg',
 			'night'		=> 'earth-night.jpg',
 			'marble'	=> 'earth-blue-marble.jpg',
+			// satellite: il globo usa i tasselli Esri; l'immagine resta come riserva
+			'satellite'	=> 'earth-blue-marble.jpg',
 		];
 		$texture = isset($textures[$this->config['radioglobe_texture']]) ? $textures[$this->config['radioglobe_texture']] : $textures['dark'];
+		$use_tiles = $this->config['radioglobe_texture'] === 'satellite';
+		$markers = (isset($this->config['radioglobe_markers']) && $this->config['radioglobe_markers'] === 'classic') ? 'classic' : 'dots';
+		$dot_color = isset($this->config['radioglobe_dot_color']) && preg_match('/^#[0-9a-f]{6}$/i', $this->config['radioglobe_dot_color']) ? strtolower($this->config['radioglobe_dot_color']) : '#1ed760';
+		$dot_mode = isset($this->config['radioglobe_dot_mode']) && in_array($this->config['radioglobe_dot_mode'], ['shades', 'single', 'heat', 'country'], true) ? $this->config['radioglobe_dot_mode'] : 'shades';
 		$images = generate_board_url() . '/ext/salvocortesiano/radioglobe/styles/all/theme/images/';
 
 		$page_config = [
@@ -69,6 +75,10 @@ class main
 			'searchUrl'		=> $this->helper->route('salvocortesiano_radioglobe_search', [], false),
 			'dataVersion'	=> (int) $this->config['radioglobe_data_version'],
 			'texture'		=> $images . $texture,
+			'tiles'			=> $use_tiles,
+			'markers'		=> $markers,
+			'dotColor'		=> $dot_color,
+			'dotMode'		=> $dot_mode,
 			'sky'			=> $images . 'night-sky.png',
 			'autorotate'	=> (bool) $this->config['radioglobe_autorotate'],
 			'stationCount'	=> (int) $this->config['radioglobe_sync_count'],
@@ -80,6 +90,7 @@ class main
 			'RADIOGLOBE_STATION_COUNT'	=> (int) $this->config['radioglobe_sync_count'],
 			'RADIOGLOBE_PLACE_COUNT'	=> (int) $this->config['radioglobe_sync_places'],
 			'S_RADIOGLOBE_EMPTY'		=> (int) $this->config['radioglobe_sync_count'] === 0,
+			'S_RADIOGLOBE_TILES'		=> $use_tiles,
 			'S_RADIOGLOBE_CAN_FAV'		=> $this->can_favorite(),
 		]);
 

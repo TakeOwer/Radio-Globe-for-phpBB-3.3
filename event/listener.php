@@ -107,15 +107,25 @@ class listener implements EventSubscriberInterface
 		$can_fav = !$guest && $this->auth->acl_get('u_radioglobe_favorite');
 		$can_comment = !$guest && !empty($this->config['radioglobe_comments_enabled']) && $this->auth->acl_get('u_radioglobe_comment');
 
-		$player_config = [
-			'pageUrl'			=> $this->helper->route('salvocortesiano_radioglobe_page', [], false),
-			'stationUrl'		=> $this->helper->route('salvocortesiano_radioglobe_station', ['station_id' => 0], false),
-			'nowPlayingUrl'		=> $this->helper->route('salvocortesiano_radioglobe_nowplaying', ['station_id' => 0], false),
-			'favoritesUrl'		=> $this->helper->route('salvocortesiano_radioglobe_favorites', [], false),
-			'favoriteUrl'		=> $this->helper->route('salvocortesiano_radioglobe_favorite_toggle', [], false),
-			'commentsUrl'		=> $this->helper->route('salvocortesiano_radioglobe_comments', ['station_id' => 0], false),
-			'commentAddUrl'		=> $this->helper->route('salvocortesiano_radioglobe_comment_add', [], false),
-			'commentDeleteUrl'	=> $this->helper->route('salvocortesiano_radioglobe_comment_delete', [], false),
+		$urls = [
+			'pageUrl'			=> $this->safe_route('salvocortesiano_radioglobe_page', [], false),
+			'stationUrl'		=> $this->safe_route('salvocortesiano_radioglobe_station', ['station_id' => 0], false),
+			'nowPlayingUrl'		=> $this->safe_route('salvocortesiano_radioglobe_nowplaying', ['station_id' => 0], false),
+			'favoritesUrl'		=> $this->safe_route('salvocortesiano_radioglobe_favorites', [], false),
+			'favoriteUrl'		=> $this->safe_route('salvocortesiano_radioglobe_favorite_toggle', [], false),
+			'commentsUrl'		=> $this->safe_route('salvocortesiano_radioglobe_comments', ['station_id' => 0], false),
+			'commentAddUrl'		=> $this->safe_route('salvocortesiano_radioglobe_comment_add', [], false),
+			'commentDeleteUrl'	=> $this->safe_route('salvocortesiano_radioglobe_comment_delete', [], false),
+		];
+
+		// Cache del router non allineata (file appena caricati, cache non
+		// svuotata): niente player ne' voce di menu, ma il forum resta vivo.
+		if (in_array('', $urls, true))
+		{
+			return;
+		}
+
+		$player_config = $urls + [
 			'hash'				=> generate_link_hash('radioglobe_ajax'),
 			'canFavorite'		=> $can_fav,
 			'canComment'		=> $can_comment,
@@ -128,7 +138,7 @@ class listener implements EventSubscriberInterface
 		];
 
 		$this->template->assign_vars([
-			'U_RADIOGLOBE_PAGE'			=> !empty($this->config['radioglobe_nav_link']) ? $this->helper->route('salvocortesiano_radioglobe_page') : '',
+			'U_RADIOGLOBE_PAGE'			=> !empty($this->config['radioglobe_nav_link']) ? $this->safe_route('salvocortesiano_radioglobe_page') : '',
 			'S_RADIOGLOBE_PLAYER'		=> $show_player,
 			'RADIOGLOBE_PLAYER_ALPHA'	=> number_format($this->player_opacity() / 100, 2, '.', ''),
 			'S_RADIOGLOBE_TRANSLUCENT'	=> $this->player_opacity() < 100,
@@ -148,6 +158,23 @@ class listener implements EventSubscriberInterface
 
 		$this->favorites->delete_users($user_ids);
 		$this->comments->delete_users($user_ids);
+	}
+
+	/**
+	 * Come helper->route(), ma restituisce '' invece di far cadere tutto il
+	 * forum quando la rotta manca dalla cache del router
+	 * (RouteNotFoundException da cache/production/url_generator.php).
+	 */
+	protected function safe_route($name, array $params = [], $is_amp = true)
+	{
+		try
+		{
+			return (string) $this->helper->route($name, $params, $is_amp);
+		}
+		catch (\Exception $e)
+		{
+			return '';
+		}
 	}
 
 	protected function js_lang()
@@ -193,6 +220,9 @@ class listener implements EventSubscriberInterface
 			'stations'			=> 'RADIOGLOBE_STATIONS',
 			'noStations'		=> 'RADIOGLOBE_NO_STATIONS',
 			'searchResults'		=> 'RADIOGLOBE_SEARCH_RESULTS',
+			'nearCoords'		=> 'RADIOGLOBE_NEAR_COORDS',
+			'placeRegion'		=> 'RADIOGLOBE_PLACE_REGION',
+			'placeCountry'		=> 'RADIOGLOBE_PLACE_COUNTRY',
 			'searching'			=> 'RADIOGLOBE_SEARCHING',
 			'error'				=> 'RADIOGLOBE_ERROR',
 			'webglMissing'		=> 'RADIOGLOBE_WEBGL_MISSING',

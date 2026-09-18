@@ -10,30 +10,30 @@
 
 namespace salvocortesiano\radioglobe\migrations;
 
-class add_player_opacity extends \phpbb\db\migration\migration
+class add_nogeo_stations extends \phpbb\db\migration\migration
 {
 	public function effectively_installed()
 	{
-		return isset($this->config['radioglobe_player_opacity']);
+		return isset($this->config['radioglobe_nogeo']);
 	}
 
 	public static function depends_on()
 	{
-		return ['\salvocortesiano\radioglobe\migrations\add_modules'];
+		return ['\salvocortesiano\radioglobe\migrations\add_globe_markers'];
 	}
 
 	public function update_data()
 	{
 		return [
-			// opacita' dello sfondo della barra del player, in percentuale
-			['config.add', ['radioglobe_player_opacity', 100]],
+			// stazioni senza coordinate messe sul globo nella loro regione o nel loro paese (1 = si)
+			['config.add', ['radioglobe_nogeo', 1]],
 		];
 	}
 
 	public function revert_data()
 	{
 		return [
-			['config.remove', ['radioglobe_player_opacity']],
+			['config.remove', ['radioglobe_nogeo']],
 		];
 	}
 }

@@ -10,30 +10,30 @@
 
 namespace salvocortesiano\radioglobe\migrations;
 
-class add_player_opacity extends \phpbb\db\migration\migration
+class add_globe_markers extends \phpbb\db\migration\migration
 {
 	public function effectively_installed()
 	{
-		return isset($this->config['radioglobe_player_opacity']);
+		return isset($this->config['radioglobe_markers']);
 	}
 
 	public static function depends_on()
 	{
-		return ['\salvocortesiano\radioglobe\migrations\add_modules'];
+		return ['\salvocortesiano\radioglobe\migrations\add_player_opacity'];
 	}
 
 	public function update_data()
 	{
 		return [
-			// opacita' dello sfondo della barra del player, in percentuale
-			['config.add', ['radioglobe_player_opacity', 100]],
+			// stile dei punti sul globo: 'dots' (dimensione fissa sullo schermo) o 'classic' (cilindri 3D)
+			['config.add', ['radioglobe_markers', 'dots']],
 		];
 	}
 
 	public function revert_data()
 	{
 		return [
-			['config.remove', ['radioglobe_player_opacity']],
+			['config.remove', ['radioglobe_markers']],
 		];
 	}
 }

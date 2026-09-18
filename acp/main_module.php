@@ -133,9 +133,38 @@ class main_module
 
 			$texture = $request->variable('radioglobe_texture', 'dark');
 
-			if (!in_array($texture, ['dark', 'night', 'marble'], true))
+			if (!in_array($texture, ['dark', 'night', 'marble', 'satellite'], true))
 			{
 				$texture = 'dark';
+			}
+
+			$markers = $request->variable('radioglobe_markers', 'dots');
+
+			if (!in_array($markers, ['dots', 'classic'], true))
+			{
+				$markers = 'dots';
+			}
+
+			$dot_color = strtolower(trim($request->variable('radioglobe_dot_color', '#1ed760')));
+
+			if (preg_match('/^#?([0-9a-f]{3})$/', $dot_color, $m))
+			{
+				$dot_color = '#' . $m[1][0] . $m[1][0] . $m[1][1] . $m[1][1] . $m[1][2] . $m[1][2];
+			}
+			else if (preg_match('/^#?([0-9a-f]{6})$/', $dot_color, $m))
+			{
+				$dot_color = '#' . $m[1];
+			}
+			else
+			{
+				$dot_color = '#1ed760';
+			}
+
+			$dot_mode = $request->variable('radioglobe_dot_mode', 'shades');
+
+			if (!in_array($dot_mode, ['shades', 'single', 'heat', 'country'], true))
+			{
+				$dot_mode = 'shades';
 			}
 
 			$old_filters = $this->filter_signature($config, $config_text);
@@ -143,6 +172,7 @@ class main_module
 			$config->set('radioglobe_api_server', $server);
 			$config->set('radioglobe_https_only', $request->variable('radioglobe_https_only', 1));
 			$config->set('radioglobe_exclude_hls', $request->variable('radioglobe_exclude_hls', 1));
+			$config->set('radioglobe_nogeo', $request->variable('radioglobe_nogeo', 1));
 			$config->set('radioglobe_min_bitrate', max(0, min(1024, $request->variable('radioglobe_min_bitrate', 0))));
 			$config->set('radioglobe_max_stations', max(500, min(100000, $request->variable('radioglobe_max_stations', 30000))));
 			$config->set('radioglobe_cluster_grid', max(5, min(200, $request->variable('radioglobe_cluster_grid', 25))));
@@ -157,6 +187,9 @@ class main_module
 			$config->set('radioglobe_nowplaying', $request->variable('radioglobe_nowplaying', 1));
 			$config->set('radioglobe_covers', $request->variable('radioglobe_covers', 1));
 			$config->set('radioglobe_texture', $texture);
+			$config->set('radioglobe_markers', $markers);
+			$config->set('radioglobe_dot_color', $dot_color);
+			$config->set('radioglobe_dot_mode', $dot_mode);
 			$config->set('radioglobe_autorotate', $request->variable('radioglobe_autorotate', 1));
 
 			$config->set('radioglobe_comments_enabled', $request->variable('radioglobe_comments_enabled', 1));
@@ -191,6 +224,7 @@ class main_module
 			'RADIOGLOBE_API_SERVER'			=> $config['radioglobe_api_server'],
 			'S_RADIOGLOBE_HTTPS_ONLY'		=> (bool) $config['radioglobe_https_only'],
 			'S_RADIOGLOBE_EXCLUDE_HLS'		=> (bool) $config['radioglobe_exclude_hls'],
+			'S_RADIOGLOBE_NOGEO'			=> !isset($config['radioglobe_nogeo']) || (bool) $config['radioglobe_nogeo'],
 			'RADIOGLOBE_MIN_BITRATE'		=> (int) $config['radioglobe_min_bitrate'],
 			'RADIOGLOBE_MAX_STATIONS'		=> (int) $config['radioglobe_max_stations'],
 			'RADIOGLOBE_CLUSTER_GRID'		=> (int) $config['radioglobe_cluster_grid'],
@@ -204,6 +238,9 @@ class main_module
 			'S_RADIOGLOBE_NOWPLAYING'		=> (bool) $config['radioglobe_nowplaying'],
 			'S_RADIOGLOBE_COVERS'			=> (bool) $config['radioglobe_covers'],
 			'RADIOGLOBE_TEXTURE'			=> $config['radioglobe_texture'],
+			'RADIOGLOBE_MARKERS'			=> isset($config['radioglobe_markers']) ? $config['radioglobe_markers'] : 'dots',
+			'RADIOGLOBE_DOT_COLOR'			=> isset($config['radioglobe_dot_color']) ? $config['radioglobe_dot_color'] : '#1ed760',
+			'RADIOGLOBE_DOT_MODE'			=> isset($config['radioglobe_dot_mode']) ? $config['radioglobe_dot_mode'] : 'shades',
 			'S_RADIOGLOBE_AUTOROTATE'		=> (bool) $config['radioglobe_autorotate'],
 			'S_RADIOGLOBE_COMMENTS_ENABLED'	=> (bool) $config['radioglobe_comments_enabled'],
 			'RADIOGLOBE_COMMENT_MAXLEN'		=> (int) $config['radioglobe_comment_maxlen'],
@@ -222,6 +259,7 @@ class main_module
 		return md5(implode('|', [
 			$config['radioglobe_https_only'],
 			$config['radioglobe_exclude_hls'],
+			isset($config['radioglobe_nogeo']) ? $config['radioglobe_nogeo'] : 1,
 			$config['radioglobe_min_bitrate'],
 			$config['radioglobe_max_stations'],
 			$config['radioglobe_cluster_grid'],

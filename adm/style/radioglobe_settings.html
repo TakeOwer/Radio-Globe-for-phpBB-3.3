@@ -32,6 +32,13 @@
 			</dd>
 		</dl>
 		<dl>
+			<dt><label for="radioglobe_nogeo">{L_RADIOGLOBE_NOGEO}:</label><br /><span>{L_RADIOGLOBE_NOGEO_EXPLAIN}</span></dt>
+			<dd>
+				<label><input type="radio" class="radio" id="radioglobe_nogeo" name="radioglobe_nogeo" value="1"<!-- IF S_RADIOGLOBE_NOGEO --> checked="checked"<!-- ENDIF --> /> {L_YES}</label>
+				<label><input type="radio" class="radio" name="radioglobe_nogeo" value="0"<!-- IF not S_RADIOGLOBE_NOGEO --> checked="checked"<!-- ENDIF --> /> {L_NO}</label>
+			</dd>
+		</dl>
+		<dl>
 			<dt><label for="radioglobe_tags">{L_RADIOGLOBE_TAGS}:</label><br /><span>{L_RADIOGLOBE_TAGS_EXPLAIN}</span></dt>
 			<dd><textarea id="radioglobe_tags" name="radioglobe_tags" rows="5" cols="45" placeholder="rock, jazz, classical, news">{RADIOGLOBE_TAGS}</textarea></dd>
 		</dl>
@@ -172,14 +179,60 @@
 			</dd>
 		</dl>
 		<dl>
-			<dt><label for="radioglobe_texture">{L_RADIOGLOBE_TEXTURE}:</label></dt>
+			<dt><label for="radioglobe_texture">{L_RADIOGLOBE_TEXTURE}:</label><br /><span>{L_RADIOGLOBE_TEXTURE_EXPLAIN}</span></dt>
 			<dd>
 				<select id="radioglobe_texture" name="radioglobe_texture">
 					<option value="dark"<!-- IF RADIOGLOBE_TEXTURE == 'dark' --> selected="selected"<!-- ENDIF -->>{L_RADIOGLOBE_TEXTURE_DARK}</option>
 					<option value="night"<!-- IF RADIOGLOBE_TEXTURE == 'night' --> selected="selected"<!-- ENDIF -->>{L_RADIOGLOBE_TEXTURE_NIGHT}</option>
 					<option value="marble"<!-- IF RADIOGLOBE_TEXTURE == 'marble' --> selected="selected"<!-- ENDIF -->>{L_RADIOGLOBE_TEXTURE_MARBLE}</option>
+					<option value="satellite"<!-- IF RADIOGLOBE_TEXTURE == 'satellite' --> selected="selected"<!-- ENDIF -->>{L_RADIOGLOBE_TEXTURE_SATELLITE}</option>
 				</select>
 			</dd>
+		</dl>
+		<dl>
+			<dt><label for="radioglobe_markers">{L_RADIOGLOBE_MARKERS}:</label><br /><span>{L_RADIOGLOBE_MARKERS_EXPLAIN}</span></dt>
+			<dd>
+				<select id="radioglobe_markers" name="radioglobe_markers">
+					<option value="dots"<!-- IF RADIOGLOBE_MARKERS != 'classic' --> selected="selected"<!-- ENDIF -->>{L_RADIOGLOBE_MARKERS_DOTS}</option>
+					<option value="classic"<!-- IF RADIOGLOBE_MARKERS == 'classic' --> selected="selected"<!-- ENDIF -->>{L_RADIOGLOBE_MARKERS_CLASSIC}</option>
+				</select>
+			</dd>
+		</dl>
+		<dl>
+			<dt><label for="radioglobe_dot_color">{L_RADIOGLOBE_DOT_COLOR}:</label><br /><span>{L_RADIOGLOBE_DOT_COLOR_EXPLAIN}</span></dt>
+			<dd>
+				<div class="rgc-picker">
+					<input type="color" id="rgc-wheel" value="{RADIOGLOBE_DOT_COLOR}" title="{L_RADIOGLOBE_DOT_COLOR}" />
+					<input type="text" class="inputbox autowidth" id="radioglobe_dot_color" name="radioglobe_dot_color" value="{RADIOGLOBE_DOT_COLOR}" size="8" maxlength="7" spellcheck="false" />
+					<button type="button" class="button2" id="rgc-reset">{L_RADIOGLOBE_DOT_RESET}</button>
+				</div>
+				<div class="rgc-swatches" id="rgc-swatches">
+					<button type="button" data-rgc="#1ed760" style="background:#1ed760" title="#1ed760"></button>
+					<button type="button" data-rgc="#00e5ff" style="background:#00e5ff" title="#00e5ff"></button>
+					<button type="button" data-rgc="#2f80ff" style="background:#2f80ff" title="#2f80ff"></button>
+					<button type="button" data-rgc="#8a5cff" style="background:#8a5cff" title="#8a5cff"></button>
+					<button type="button" data-rgc="#ff4fd8" style="background:#ff4fd8" title="#ff4fd8"></button>
+					<button type="button" data-rgc="#ff3b3b" style="background:#ff3b3b" title="#ff3b3b"></button>
+					<button type="button" data-rgc="#ff8a00" style="background:#ff8a00" title="#ff8a00"></button>
+					<button type="button" data-rgc="#ffd400" style="background:#ffd400" title="#ffd400"></button>
+					<button type="button" data-rgc="#ffffff" style="background:#ffffff" title="#ffffff"></button>
+				</div>
+			</dd>
+		</dl>
+		<dl>
+			<dt><label for="radioglobe_dot_mode">{L_RADIOGLOBE_DOT_MODE}:</label><br /><span>{L_RADIOGLOBE_DOT_MODE_EXPLAIN}</span></dt>
+			<dd>
+				<select id="radioglobe_dot_mode" name="radioglobe_dot_mode">
+					<option value="shades"<!-- IF RADIOGLOBE_DOT_MODE != 'single' and RADIOGLOBE_DOT_MODE != 'heat' and RADIOGLOBE_DOT_MODE != 'country' --> selected="selected"<!-- ENDIF -->>{L_RADIOGLOBE_DOT_MODE_SHADES}</option>
+					<option value="single"<!-- IF RADIOGLOBE_DOT_MODE == 'single' --> selected="selected"<!-- ENDIF -->>{L_RADIOGLOBE_DOT_MODE_SINGLE}</option>
+					<option value="heat"<!-- IF RADIOGLOBE_DOT_MODE == 'heat' --> selected="selected"<!-- ENDIF -->>{L_RADIOGLOBE_DOT_MODE_HEAT}</option>
+					<option value="country"<!-- IF RADIOGLOBE_DOT_MODE == 'country' --> selected="selected"<!-- ENDIF -->>{L_RADIOGLOBE_DOT_MODE_COUNTRY}</option>
+				</select>
+			</dd>
+		</dl>
+		<dl>
+			<dt><label>{L_RADIOGLOBE_DOT_PREVIEW}:</label></dt>
+			<dd><canvas id="rgc-preview" class="rgc-preview" width="320" height="320"></canvas></dd>
 		</dl>
 		<dl>
 			<dt><label for="radioglobe_autorotate">{L_RADIOGLOBE_AUTOROTATE}:</label></dt>
@@ -241,6 +294,14 @@
 .rgp-lines b { height: 11px; background: #105289; }
 .rgp-player { position: absolute !important; left: 0; right: 0; bottom: 0; z-index: 2 !important; }
 .rgp-player .rg-icon, .rgp-player .rg-play { cursor: default; }
+.rgc-picker { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.rgc-picker input[type=color] { width: 46px; height: 30px; padding: 0 2px; border: 1px solid #b4bac0; border-radius: 4px; background: #fff; cursor: pointer; }
+.rgc-picker input[type=text] { font-family: monospace; text-transform: lowercase; }
+.rgc-picker input.rgc-bad { border-color: #bc2a4d; background: #fdecef; }
+.rgc-swatches { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.rgc-swatches button { width: 24px; height: 24px; padding: 0; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 0 1px #9aa4ad; cursor: pointer; }
+.rgc-swatches button.rgc-on { box-shadow: 0 0 0 2px #105289; }
+.rgc-preview { width: 160px; height: 160px; border-radius: 50%; background: #05070d; }
 @media (prefers-reduced-motion: reduce) { .rgp-feed { animation: none; } }
 </style>
 
@@ -293,6 +354,103 @@
 			paint();
 		});
 	}
+})();
+</script>
+
+<script>
+(function () {
+	var text = document.getElementById('radioglobe_dot_color');
+	var wheel = document.getElementById('rgc-wheel');
+	var mode = document.getElementById('radioglobe_dot_mode');
+	var canvas = document.getElementById('rgc-preview');
+	if (!text || !wheel || !mode || !canvas || !canvas.getContext) { return; }
+	var ctx = canvas.getContext('2d');
+	var swatches = document.querySelectorAll('[data-rgc]');
+	var reset = document.getElementById('rgc-reset');
+
+	// luoghi finti, sempre uguali: posizione, numero di stazioni, paese
+	var seed = 7;
+	function rnd() { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
+	var dots = [];
+	for (var i = 0; i < 170; i++) {
+		var a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * 0.92;
+		var n = Math.max(1, Math.round(Math.pow(rnd(), 3) * 80));
+		dots.push({ x: 0.5 + Math.cos(a) * r * 0.5, y: 0.5 + Math.sin(a) * r * 0.5, n: n, cc: String.fromCharCode(65 + Math.floor(rnd() * 12), 65 + Math.floor(rnd() * 20)) });
+	}
+
+	function norm(v) {
+		// niente quantificatori tra graffe: il motore dei template di phpBB li scambia per variabili
+		var m = /^#?([0-9a-f]+)$/i.exec((v || '').trim());
+		if (!m || (m[1].length !== 3 && m[1].length !== 6)) { return null; }
+		var h = m[1].toLowerCase();
+		if (h.length === 3) { h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2]; }
+		return '#' + h;
+	}
+
+	function rgbOf(hex) { return [parseInt(hex.substr(1, 2), 16), parseInt(hex.substr(3, 2), 16), parseInt(hex.substr(5, 2), 16)]; }
+	function lighten(rgb, k) { return rgb.map(function (c) { return Math.round(c + (255 - c) * k); }).join(','); }
+
+	// stessa logica di pointColor() in radioglobe-globe.js
+	function colorOf(p, hex, rgb, m) {
+		if (m === 'single') { return hex; }
+		if (m === 'heat') {
+			var t = Math.min(1, Math.log(Math.max(1, p.n)) / Math.log(60));
+			return 'hsl(' + Math.round(220 * (1 - t)) + ',90%,' + Math.round(55 + 10 * t) + '%)';
+		}
+		if (m === 'country') {
+			var x = ((p.cc.charCodeAt(0) || 0) << 8) | (p.cc.charCodeAt(1) || 0);
+			x ^= x >>> 16; x = Math.imul(x, 0x85ebca6b); x ^= x >>> 13; x = Math.imul(x, 0xc2b2ae35); x ^= x >>> 16; x = x >>> 0;
+			return 'hsl(' + (x % 360) + ',85%,60%)';
+		}
+		return p.n >= 25 ? 'rgb(' + lighten(rgb, 0.75) + ')' : (p.n >= 6 ? 'rgb(' + lighten(rgb, 0.3) + ')' : hex);
+	}
+
+	function draw() {
+		var hex = norm(text.value) || '#1ed760';
+		var rgb = rgbOf(hex);
+		var W = canvas.width, R = W / 2;
+		ctx.clearRect(0, 0, W, W);
+		var glow = ctx.createRadialGradient(R, R, R * 0.8, R, R, R);
+		glow.addColorStop(0, 'rgba(0,0,0,0)');
+		glow.addColorStop(1, 'rgba(' + lighten(rgb, 0.45) + ',0.55)');
+		var sea = ctx.createRadialGradient(R * 0.7, R * 0.6, 10, R, R, R);
+		sea.addColorStop(0, '#1b2433');
+		sea.addColorStop(1, '#070a12');
+		ctx.fillStyle = sea;
+		ctx.beginPath(); ctx.arc(R, R, R * 0.94, 0, Math.PI * 2); ctx.fill();
+		ctx.fillStyle = glow;
+		ctx.beginPath(); ctx.arc(R, R, R, 0, Math.PI * 2); ctx.fill();
+		for (var i = 0; i < dots.length; i++) {
+			ctx.fillStyle = colorOf(dots[i], hex, rgb, mode.value);
+			ctx.beginPath(); ctx.arc(dots[i].x * W, dots[i].y * W, 4.5, 0, Math.PI * 2); ctx.fill();
+		}
+		for (var s = 0; s < swatches.length; s++) {
+			swatches[s].classList.toggle('rgc-on', swatches[s].getAttribute('data-rgc') === hex);
+		}
+	}
+
+	function set(hex) {
+		text.classList.remove('rgc-bad');
+		text.value = hex;
+		wheel.value = hex;
+		draw();
+	}
+
+	wheel.addEventListener('input', function () { set(wheel.value); });
+	text.addEventListener('input', function () {
+		var hex = norm(text.value);
+		text.classList.toggle('rgc-bad', !hex);
+		if (hex) { wheel.value = hex; }
+		draw();
+	});
+	text.addEventListener('blur', function () { set(norm(text.value) || wheel.value); });
+	mode.addEventListener('change', draw);
+	for (var b = 0; b < swatches.length; b++) {
+		swatches[b].addEventListener('click', function () { set(this.getAttribute('data-rgc')); });
+	}
+	if (reset) { reset.addEventListener('click', function () { set('#1ed760'); }); }
+
+	set(norm(text.value) || '#1ed760');
 })();
 </script>
 

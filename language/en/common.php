@@ -33,7 +33,7 @@ $lang = array_merge($lang, [
 
 	'RADIOGLOBE_LOADING_GLOBE'		=> 'Loading the globe…',
 	'RADIOGLOBE_WEBGL_MISSING'		=> 'Your browser does not support WebGL, so the globe cannot be shown. You can still search stations on the right.',
-	'RADIOGLOBE_SEARCH_PLACEHOLDER'	=> 'Search stations, genres, countries…',
+	'RADIOGLOBE_SEARCH_PLACEHOLDER'	=> 'Search stations, genres, countries or coordinates…',
 	'RADIOGLOBE_EXPLORE'			=> 'Explore',
 	'RADIOGLOBE_WELCOME_TITLE'		=> 'Spin the world',
 	'RADIOGLOBE_WELCOME_TEXT'		=> 'Drag the globe and stop on a green dot, or click it: the stations of that place appear here. Each dot groups the stations of a city or area.',
@@ -43,8 +43,12 @@ $lang = array_merge($lang, [
 	'RADIOGLOBE_PLACES'				=> 'places',
 	'RADIOGLOBE_NO_STATIONS'		=> 'No stations found.',
 	'RADIOGLOBE_SEARCH_RESULTS'		=> 'Results for “%s”',
+	'RADIOGLOBE_NEAR_COORDS'		=> 'Stations near %s',
+	'RADIOGLOBE_PLACE_REGION'		=> '(region)',
+	'RADIOGLOBE_PLACE_COUNTRY'	=> '(whole country)',
 	'RADIOGLOBE_SEARCHING'			=> 'Searching…',
 	'RADIOGLOBE_DATA_SOURCE'		=> 'Data: Radio Browser',
+	'RADIOGLOBE_IMAGERY_SOURCE'	=> 'Imagery: Esri, Maxar, Earthstar Geographics',
 
 	'RADIOGLOBE_PLAY'				=> 'Play',
 	'RADIOGLOBE_PAUSE'				=> 'Pause',
