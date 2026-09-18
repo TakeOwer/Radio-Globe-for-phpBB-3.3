@@ -96,6 +96,203 @@ class station_sync
 		return $this->store_dir() . 'sync_stations.ndjson';
 	}
 
+	/**
+	 * Posizioni delle stazioni CON coordinate, una riga "cc|regione|lat|lng": servono a collocare
+	 * sul globo le stazioni che hanno solo la regione o solo il paese.
+	 */
+	protected function geo_index_file()
+	{
+		return $this->store_dir() . 'sync_geo.ndjson';
+	}
+
+	/** Chiave di confronto delle regioni: "Baden-Württemberg" e "baden württemberg" coincidono. */
+	public static function region_key($state)
+	{
+		$key = utf8_strtolower(trim((string) $state));
+
+		// senza accenti: "Bahía" e "Bahia", "Québec" e "Quebec" sono la stessa regione
+		if (class_exists('Normalizer'))
+		{
+			$decomposed = \Normalizer::normalize($key, \Normalizer::FORM_D);
+			if ($decomposed !== false)
+			{
+				$key = preg_replace('#\p{Mn}+#u', '', $decomposed);
+			}
+		}
+		else
+		{
+			$key = strtr($key, [
+				'à' => 'a', 'á' => 'a', 'â' => 'a', 'ã' => 'a', 'ä' => 'a', 'å' => 'a', 'ç' => 'c', 'è' => 'e', 'é' => 'e',
+				'ê' => 'e', 'ë' => 'e', 'ì' => 'i', 'í' => 'i', 'î' => 'i', 'ï' => 'i', 'ñ' => 'n', 'ò' => 'o', 'ó' => 'o',
+				'ô' => 'o', 'õ' => 'o', 'ö' => 'o', 'ù' => 'u', 'ú' => 'u', 'û' => 'u', 'ü' => 'u', 'ý' => 'y', 'ÿ' => 'y',
+			]);
+		}
+
+		$key = preg_replace('#[^\p{L}\p{N}]+#u', '', $key);
+
+		return (string) $key;
+	}
+
+	/** Indice caricato una volta per richiesta: [ 'cc|regione' => [[lat, lng], ...], 'cc' => [...] ] */
+	protected $geo_index = null;
+
+	protected function load_geo_index()
+	{
+		if ($this->geo_index !== null)
+		{
+			return $this->geo_index;
+		}
+
+		$index = [];
+		$handle = @fopen($this->geo_index_file(), 'rb');
+
+		if ($handle)
+		{
+			while (($line = fgets($handle)) !== false)
+			{
+				$parts = explode('|', rtrim($line, "\r\n"));
+
+				if (count($parts) !== 4)
+				{
+					continue;
+				}
+
+				$point = [(float) $parts[2], (float) $parts[3]];
+				$index[$parts[0]][] = $point;
+
+				if ($parts[1] !== '')
+				{
+					$index[$parts[0] . '|' . $parts[1]][] = $point;
+				}
+			}
+			fclose($handle);
+		}
+
+		return $this->geo_index = $index;
+	}
+
+	/**
+	 * Punto centrale (mediana, non media: i territori d'oltremare non spostano il punto nell'oceano).
+	 *
+	 * @return array [lat, lng]
+	 */
+	protected static function median_point(array $points)
+	{
+		$lats = array_column($points, 0);
+		$lngs = array_column($points, 1);
+		sort($lats);
+		sort($lngs);
+		$mid = (int) floor(count($lats) / 2);
+
+		return [$lats[$mid], $lngs[$mid]];
+	}
+
+	/** Regioni note per paese (dall'indice), dalla chiave piu' lunga: per il confronto "contenuta nel testo" */
+	protected $regions_by_country = null;
+
+	/**
+	 * Il campo regione di Radio Browser e' scritto a mano: "Fortaleza, Ceará", "Curitiba Paraná",
+	 * "Joinville - SC". Si prova il testo intero, poi ogni parte separata da virgola, trattino o barra,
+	 * poi una regione nota contenuta nel testo (la piu' lunga, per non prendere "SC" dentro "Oscar").
+	 *
+	 * @return string chiave della regione nell'indice, '' se nessuna
+	 */
+	protected function match_region($cc, $state)
+	{
+		$index = $this->load_geo_index();
+		$full = self::region_key($state);
+
+		if ($full === '')
+		{
+			return '';
+		}
+
+		if (!empty($index[$cc . '|' . $full]))
+		{
+			return $full;
+		}
+
+		foreach (preg_split('#\s*(?:[,;/()]|\s-\s|\s–\s)\s*#u', (string) $state) as $part)
+		{
+			$key = self::region_key($part);
+
+			if ($key !== '' && !empty($index[$cc . '|' . $key]))
+			{
+				return $key;
+			}
+		}
+
+		if ($this->regions_by_country === null)
+		{
+			$this->regions_by_country = [];
+
+			foreach (array_keys($index) as $k)
+			{
+				if (strpos($k, '|') !== false)
+				{
+					list($country, $region) = explode('|', $k, 2);
+					$this->regions_by_country[$country][] = $region;
+				}
+			}
+
+			foreach ($this->regions_by_country as &$list)
+			{
+				usort($list, function ($a, $b) { return strlen($b) - strlen($a); });
+			}
+			unset($list);
+		}
+
+		// regione contenuta nel testo: almeno 4 caratteri, cosi' le sigle non danno falsi positivi
+		foreach (isset($this->regions_by_country[$cc]) ? $this->regions_by_country[$cc] : [] as $region)
+		{
+			if (strlen($region) >= 4 && strpos($full, $region) !== false)
+			{
+				return $region;
+			}
+		}
+
+		return '';
+	}
+
+	/**
+	 * Posizione di una stazione senza coordinate: la regione se ci sono stazioni con coordinate in
+	 * quella regione, altrimenti il paese, altrimenti il centro geografico del paese.
+	 *
+	 * @return array|null ['lat', 'lng', 'place_key']
+	 */
+	protected function locate_without_coordinates($cc, $state)
+	{
+		if ($cc === '' || $cc === 'XX')
+		{
+			return null;
+		}
+
+		$index = $this->load_geo_index();
+		$region = $this->match_region($cc, $state);
+
+		if ($region !== '')
+		{
+			list($lat, $lng) = self::median_point($index[$cc . '|' . $region]);
+
+			return ['lat' => $lat, 'lng' => $lng, 'place_key' => $cc . '_R_' . substr(md5($region), 0, 10)];
+		}
+
+		if (!empty($index[$cc]))
+		{
+			list($lat, $lng) = self::median_point($index[$cc]);
+		}
+		else if ($center = country_centers::get($cc))
+		{
+			list($lat, $lng) = $center;
+		}
+		else
+		{
+			return null;
+		}
+
+		return ['lat' => $lat, 'lng' => $lng, 'place_key' => $cc . '_C'];
+	}
+
 	public function get_state()
 	{
 		$file = $this->state_file();
@@ -176,6 +373,7 @@ class station_sync
 		}
 
 		@file_put_contents($this->data_file(), '');
+		@file_put_contents($this->geo_index_file(), '');
 
 		$this->save_state([
 			'phase'		=> 'download',
@@ -204,6 +402,7 @@ class station_sync
 	{
 		@unlink($this->state_file());
 		@unlink($this->data_file());
+		@unlink($this->geo_index_file());
 		$this->release_lock();
 
 		if ($error !== '')
@@ -304,13 +503,19 @@ class station_sync
 		$max = max(100, (int) $this->config['radioglobe_max_stations']);
 
 		$params = [
-			'has_geo_info'	=> 'true',
 			'hidebroken'	=> 'true',
 			'order'			=> 'clickcount',
 			'reverse'		=> 'true',
 			'offset'		=> (int) $state['offset'],
 			'limit'			=> self::PAGE_SIZE,
 		];
+
+		// Senza l'opzione "stazioni senza coordinate" si scaricano solo quelle con coordinate
+		// (circa un quinto di Radio Browser), come nelle versioni precedenti
+		if (!$this->include_without_coordinates())
+		{
+			$params['has_geo_info'] = 'true';
+		}
 
 		if (!empty($this->config['radioglobe_https_only']))
 		{
@@ -348,6 +553,7 @@ class station_sync
 		$https_only = !empty($this->config['radioglobe_https_only']);
 
 		$lines = '';
+		$geo_lines = '';
 
 		foreach ($data as $st)
 		{
@@ -362,12 +568,24 @@ class station_sync
 			{
 				$lines .= json_encode($row) . "\n";
 				$state['collected']++;
+
+				// le stazioni con coordinate dicono dove si trovano regioni e paesi
+				if (empty($row['_needs_geo']) && $row['countrycode'] !== '')
+				{
+					$geo_lines .= $row['countrycode'] . '|' . self::region_key($row['state']) . '|'
+						. ($row['geo_lat'] / station_repository::GEO_SCALE) . '|' . ($row['geo_long'] / station_repository::GEO_SCALE) . "\n";
+				}
 			}
 		}
 
 		if ($lines !== '')
 		{
 			@file_put_contents($this->data_file(), $lines, FILE_APPEND | LOCK_EX);
+		}
+
+		if ($geo_lines !== '')
+		{
+			@file_put_contents($this->geo_index_file(), $geo_lines, FILE_APPEND | LOCK_EX);
 		}
 
 		$state['offset'] += self::PAGE_SIZE;
@@ -397,15 +615,17 @@ class station_sync
 			return null;
 		}
 
-		if (!isset($st['geo_lat'], $st['geo_long']) || !is_numeric($st['geo_lat']) || !is_numeric($st['geo_long']))
+		$has_geo = isset($st['geo_lat'], $st['geo_long']) && is_numeric($st['geo_lat']) && is_numeric($st['geo_long']);
+		$lat = $has_geo ? (float) $st['geo_lat'] : 0.0;
+		$lng = $has_geo ? (float) $st['geo_long'] : 0.0;
+
+		if ($has_geo && (($lat == 0 && $lng == 0) || abs($lat) > 90 || abs($lng) > 180))
 		{
-			return null;
+			$has_geo = false;
 		}
 
-		$lat = (float) $st['geo_lat'];
-		$lng = (float) $st['geo_long'];
-
-		if (($lat == 0 && $lng == 0) || abs($lat) > 90 || abs($lng) > 180)
+		// senza coordinate: la stazione si colloca dopo il download, sulla sua regione o sul paese
+		if (!$has_geo && !$this->include_without_coordinates())
 		{
 			return null;
 		}
@@ -439,7 +659,14 @@ class station_sync
 		}
 
 		$cc = strtoupper(substr(preg_replace('#[^A-Za-z]#', '', (string) $st['countrycode']), 0, 2));
-		$key = ($cc !== '' ? $cc : 'XX') . '_' . (int) floor($lat / $grid) . '_' . (int) floor($lng / $grid);
+
+		if (!$has_geo && $cc === '')
+		{
+			// senza coordinate e senza paese non c'e' modo di metterla sul globo
+			return null;
+		}
+
+		$key = $has_geo ? ($cc !== '' ? $cc : 'XX') . '_' . (int) floor($lat / $grid) . '_' . (int) floor($lng / $grid) : '';
 
 		$favicon = trim((string) $st['favicon']);
 
@@ -457,7 +684,7 @@ class station_sync
 
 		$country = isset($st['country']) ? (string) $st['country'] : '';
 
-		return [
+		$row = [
 			'station_uuid'	=> substr((string) $st['stationuuid'], 0, 36),
 			'station_name'	=> $this->clean(isset($st['name']) ? $st['name'] : '', 255),
 			'stream_url'	=> $url,
@@ -477,6 +704,19 @@ class station_sync
 			'votes'			=> max(0, (int) $st['votes']),
 			'clicks'		=> max(0, (int) $st['clickcount']),
 		];
+
+		if (!$has_geo)
+		{
+			$row['_needs_geo'] = 1;
+		}
+
+		return $row;
+	}
+
+	/** ACP: mettere sul globo anche le stazioni senza coordinate (sulla loro regione o sul paese). */
+	protected function include_without_coordinates()
+	{
+		return !isset($this->config['radioglobe_nogeo']) || !empty($this->config['radioglobe_nogeo']);
 	}
 
 	protected function clean($text, $max)
@@ -603,6 +843,23 @@ class station_sync
 
 		foreach ($rows as $uuid => $row)
 		{
+			// stazione senza coordinate: la si mette sulla sua regione o sul suo paese
+			if (!empty($row['_needs_geo']))
+			{
+				$spot = $this->locate_without_coordinates($row['countrycode'], $row['state']);
+
+				if ($spot === null)
+				{
+					$state['skipped'] = (isset($state['skipped']) ? $state['skipped'] : 0) + 1;
+					continue;
+				}
+
+				$row['geo_lat'] = (int) round($spot['lat'] * station_repository::GEO_SCALE);
+				$row['geo_long'] = (int) round($spot['lng'] * station_repository::GEO_SCALE);
+				$row['place_key'] = $spot['place_key'];
+			}
+			unset($row['_needs_geo']);
+
 			// le righe scaricate da una versione precedente possono
 			// contenere ancora emoji: si ripuliscono qui
 			foreach ($row as $field => $value)
@@ -757,6 +1014,7 @@ class station_sync
 
 		@unlink($this->state_file());
 		@unlink($this->data_file());
+		@unlink($this->geo_index_file());
 	}
 
 	/* ------------------------------------------------------------------

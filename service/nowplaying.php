@@ -58,25 +58,144 @@ class nowplaying
 			return $cached;
 		}
 
-		$raw = (string) $this->http->read_icy_title($station['stream_url'], 5);
 		$info = $empty;
 
-		if ($this->is_meaningful($raw, $station['station_name']))
-		{
-			$info['title'] = utf8_substr($raw, 0, 200);
-			list($info['artist'], $info['track']) = $this->split_title($info['title']);
+		// 1) radio su AzuraCast: la sua API "in onda adesso" e' veloce, separa gia' artista e titolo
+		//    e spesso ha la copertina del brano; 2) per tutte le altre, i metadati ICY dello stream
+		$song = $this->read_azuracast($station['stream_url']);
 
-			if (!empty($this->config['radioglobe_covers']) && $info['artist'] !== '' && $info['track'] !== '')
+		if ($song === null)
+		{
+			$raw = trim((string) $this->http->read_icy_title($station['stream_url'], 5));
+			list($artist, $track) = $this->split_title($raw);
+			$song = ['artist' => $artist, 'track' => $track, 'cover' => ''];
+		}
+
+		$song = $this->clean_song($song, $station['station_name']);
+
+		if ($song !== null)
+		{
+			$info['artist'] = utf8_substr($song['artist'], 0, 100);
+			$info['track'] = utf8_substr($song['track'], 0, 150);
+			$info['title'] = ($info['artist'] !== '') ? $info['artist'] . ' - ' . $info['track'] : $info['track'];
+
+			if (!empty($this->config['radioglobe_covers']))
 			{
-				$cover = $this->find_cover($info['artist'], $info['track']);
-				$info['cover'] = $cover['small'];
-				$info['cover_big'] = $cover['big'];
+				if ($song['cover'] !== '')
+				{
+					$info['cover'] = $info['cover_big'] = $song['cover'];
+				}
+				else if ($info['artist'] !== '' && $info['track'] !== '')
+				{
+					$cover = $this->find_cover($info['artist'], $info['track']);
+					$info['cover'] = $cover['small'];
+					$info['cover_big'] = $cover['big'];
+				}
 			}
 		}
 
 		$this->cache->put($key, $info, self::TTL_TITLE);
 
 		return $info;
+	}
+
+	/**
+	 * Stazioni AzuraCast (indirizzo ".../listen/<nome>/..."): titolo dall'API /api/nowplaying/<nome>.
+	 * Se la radio non ha l'API lo si ricorda per un giorno, per non interrogarla a ogni brano.
+	 *
+	 * @return array|null ['artist', 'track', 'cover'] oppure null se non disponibile
+	 */
+	protected function read_azuracast($stream_url)
+	{
+		if (!preg_match('#^(https?://[^/?\#]+)/listen/([A-Za-z0-9_\-]+)/#i', (string) $stream_url, $m))
+		{
+			return null;
+		}
+
+		$api = $m[1] . '/api/nowplaying/' . $m[2];
+		$miss_key = '_radioglobe_azura_' . md5(strtolower($api));
+
+		if ($this->cache->get($miss_key))
+		{
+			return null;
+		}
+
+		$response = $this->http->get($api, ['Accept: application/json'], 4);
+		$data = ($response['status'] === 200) ? json_decode($response['body'], true) : null;
+
+		if (!is_array($data) || !isset($data['now_playing']['song']) || !is_array($data['now_playing']['song']))
+		{
+			$this->cache->put($miss_key, 1, self::TTL_COVER_MISS);
+			return null;
+		}
+
+		$song = $data['now_playing']['song'];
+		$artist = isset($song['artist']) ? trim((string) $song['artist']) : '';
+		$track = isset($song['title']) ? trim((string) $song['title']) : '';
+
+		// alcuni file hanno solo il campo "text" ("Artista - Titolo")
+		if ($track === '' && !empty($song['text']))
+		{
+			list($artist, $track) = $this->split_title(trim((string) $song['text']));
+		}
+
+		// solo copertine https: in una pagina https un'immagine http verrebbe bloccata
+		$art = isset($song['art']) ? trim((string) $song['art']) : '';
+		if (!preg_match('#^https://#i', $art) || stripos($art, 'generic_song') !== false)
+		{
+			$art = '';
+		}
+
+		return ['artist' => $artist, 'track' => $track, 'cover' => $art];
+	}
+
+	/**
+	 * Toglie cio' che non e' un brano: "Unknown", "Tag1", "Track 03", jingle, pubblicita', nome della
+	 * stazione... In quei casi il player mostra il nome della stazione invece di un titolo fasullo.
+	 *
+	 * @return array|null
+	 */
+	protected function clean_song(array $song, $station_name)
+	{
+		$artist = trim(html_entity_decode((string) $song['artist'], ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+		$track = trim(html_entity_decode((string) $song['track'], ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+		$station = utf8_strtolower(trim((string) $station_name));
+
+		if ($this->is_placeholder($artist) || utf8_strtolower($artist) === $station)
+		{
+			$artist = '';
+		}
+
+		if ($track === '' || $this->is_placeholder($track) || utf8_strtolower($track) === $station)
+		{
+			return null;
+		}
+
+		if (!$this->is_meaningful(($artist !== '' ? $artist . ' - ' : '') . $track, $station_name))
+		{
+			return null;
+		}
+
+		return ['artist' => $artist, 'track' => $track, 'cover' => (string) $song['cover']];
+	}
+
+	/** Valori segnaposto che i server e i programmi di messa in onda usano quando manca il tag del brano. */
+	protected function is_placeholder($value)
+	{
+		$v = utf8_strtolower(trim($value));
+		$v = trim(preg_replace('#\s+#u', ' ', $v), " \t-_.:|/");
+
+		if ($v === '')
+		{
+			return true;
+		}
+
+		return (bool) preg_match(
+			'#^(?:unknown(?: artist| title| track| song)?|untitled|no ?title|no ?name|n/?a|none|null|undefined|'
+			. '(?:tag|track|traccia|id|jingle|sweeper|promo|spot|station ?id|liner|bumper)(?:[\s_\-]*\d+)?|'
+			. '(?:jingle|sweeper|promo|spot|advert|advertisement|commercial|pubblicit[aà]|werbung|publicidad|publicit[eé])\b.*)$#u',
+			$v
+		);
 	}
 
 	/**

@@ -93,7 +93,7 @@ class station_repository
 	 * @param int $limit
 	 * @return array
 	 */
-	public function get_by_place($place_key, $limit = 300)
+	public function get_by_place($place_key, $limit = 1000)
 	{
 		$sql = 'SELECT *
 			FROM ' . $this->stations_table . "
@@ -132,6 +132,136 @@ class station_repository
 	 * @param int $limit
 	 * @return array
 	 */
+	/**
+	 * Stazioni piu' vicine a un punto, dalla piu' vicina (ricerca per coordinate).
+	 * Si cerca in un riquadro che si allarga finche' non si trova qualcosa.
+	 *
+	 * @return array righe con 'distance_km' aggiunto
+	 */
+	public function search_near($lat, $lng, $limit = 60)
+	{
+		$lat = max(-90, min(90, (float) $lat));
+		$lng = max(-180, min(180, (float) $lng));
+		$rows = [];
+
+		foreach ([0.5, 2, 6, 20] as $deg)
+		{
+			$lat_min = (int) round(($lat - $deg) * self::GEO_SCALE);
+			$lat_max = (int) round(($lat + $deg) * self::GEO_SCALE);
+			$lng_deg = min(180, $deg / max(0.05, cos(deg2rad($lat))));
+			$lng_min = (int) round(($lng - $lng_deg) * self::GEO_SCALE);
+			$lng_max = (int) round(($lng + $lng_deg) * self::GEO_SCALE);
+
+			$sql = 'SELECT *
+				FROM ' . $this->stations_table . '
+				WHERE station_active = 1
+					AND geo_lat BETWEEN ' . $lat_min . ' AND ' . $lat_max;
+
+			// vicino alla linea del cambio di data il riquadro "gira" dall'altra parte
+			if ($lng_min < -180 * self::GEO_SCALE || $lng_max > 180 * self::GEO_SCALE)
+			{
+				$sql .= ' AND (geo_long >= ' . ($lng_min < -180 * self::GEO_SCALE ? $lng_min + 360 * self::GEO_SCALE : $lng_min)
+					. ' OR geo_long <= ' . ($lng_max > 180 * self::GEO_SCALE ? $lng_max - 360 * self::GEO_SCALE : $lng_max) . ')';
+			}
+			else
+			{
+				$sql .= ' AND geo_long BETWEEN ' . $lng_min . ' AND ' . $lng_max;
+			}
+
+			$result = $this->db->sql_query_limit($sql, 2000);
+			$rows = $this->db->sql_fetchrowset($result);
+			$this->db->sql_freeresult($result);
+
+			if (count($rows) >= 5)
+			{
+				break;
+			}
+		}
+
+		foreach ($rows as &$row)
+		{
+			$row['distance_km'] = self::distance_km($lat, $lng, $row['geo_lat'] / self::GEO_SCALE, $row['geo_long'] / self::GEO_SCALE);
+		}
+		unset($row);
+
+		usort($rows, function ($a, $b) {
+			return ($a['distance_km'] < $b['distance_km']) ? -1 : (($a['distance_km'] > $b['distance_km']) ? 1 : (int) $b['clicks'] - (int) $a['clicks']);
+		});
+
+		return array_slice($rows, 0, (int) $limit);
+	}
+
+	/** Distanza in km lungo la superficie terrestre (formula dell'emisenoverso). */
+	public static function distance_km($lat1, $lng1, $lat2, $lng2)
+	{
+		$d_lat = deg2rad($lat2 - $lat1);
+		$d_lng = deg2rad($lng2 - $lng1);
+		$a = sin($d_lat / 2) * sin($d_lat / 2) + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($d_lng / 2) * sin($d_lng / 2);
+
+		return 6371 * 2 * atan2(sqrt($a), sqrt(1 - $a));
+	}
+
+	/**
+	 * Riconosce le coordinate scritte nella casella di ricerca, nei formati piu' comuni:
+	 *   45.4642, 9.19   |   45.4642 9.19   |   45,4642 9,19   |   -33.86 151.21
+	 *   45.46N 9.19E    |   45°27'51"N 9°11'24"E   |   N 45° 27.85' E 9° 11.4'
+	 *
+	 * @return array|null [lat, lng]
+	 */
+	public static function parse_coordinates($text)
+	{
+		$text = trim(str_replace(['’', '′', '″', '“', '”'], ["'", "'", '"', '"', '"'], (string) $text));
+
+		// decimali semplici, con separatore virgola+spazio, punto e virgola o spazio
+		if (preg_match('#^([+-]?\d{1,2}(?:[.,]\d+)?)\s*[,;\s]\s*([+-]?\d{1,3}(?:[.,]\d+)?)$#u', $text, $m)
+			&& (strpos($m[1], ',') === false || strpos($text, ' ') !== false))
+		{
+			$lat = (float) str_replace(',', '.', $m[1]);
+			$lng = (float) str_replace(',', '.', $m[2]);
+		}
+		else
+		{
+			// gradi/minuti/secondi o decimali con le lettere N S E W (anche O = ovest)
+			$part = '(?:([NSEWO])\s*)?(\d{1,3}(?:[.,]\d+)?)\s*(?:°|º|\s)?\s*(?:(\d{1,2}(?:[.,]\d+)?)\s*\')?\s*(?:(\d{1,2}(?:[.,]\d+)?)\s*")?\s*([NSEWO])?';
+			if (!preg_match('#^' . $part . '\s*[,;]?\s*' . $part . '$#iu', $text, $m))
+			{
+				return null;
+			}
+
+			$values = [];
+			foreach ([[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]] as $idx)
+			{
+				$dir = strtoupper(!empty($m[$idx[0]]) ? $m[$idx[0]] : (isset($m[$idx[4]]) ? $m[$idx[4]] : ''));
+				$value = (float) str_replace(',', '.', $m[$idx[1]])
+					+ (isset($m[$idx[2]]) && $m[$idx[2]] !== '' ? (float) str_replace(',', '.', $m[$idx[2]]) / 60 : 0)
+					+ (isset($m[$idx[3]]) && $m[$idx[3]] !== '' ? (float) str_replace(',', '.', $m[$idx[3]]) / 3600 : 0);
+				$values[] = [$dir, $value];
+			}
+
+			// senza lettere non e' una coordinata "gradi" (evita di scambiare "100 200" per coordinate)
+			if ($values[0][0] === '' && $values[1][0] === '')
+			{
+				return null;
+			}
+
+			// l'ordine lo decidono le lettere: "E 9 N 45" vale come "45 N 9 E"
+			if (in_array($values[0][0], ['E', 'W', 'O'], true) || in_array($values[1][0], ['N', 'S'], true))
+			{
+				$values = [$values[1], $values[0]];
+			}
+
+			$lat = $values[0][1] * ($values[0][0] === 'S' ? -1 : 1);
+			$lng = $values[1][1] * (in_array($values[1][0], ['W', 'O'], true) ? -1 : 1);
+		}
+
+		if (abs($lat) > 90 || abs($lng) > 180)
+		{
+			return null;
+		}
+
+		return [$lat, $lng];
+	}
+
 	public function search($term, $limit = 60)
 	{
 		$term = trim($term);
@@ -323,7 +453,8 @@ class station_repository
 		{
 			$title = $p['country'];
 
-			if (!empty($p['states']))
+			// "CC_C": stazioni senza coordinate e senza regione nota, raccolte sul paese
+			if (!empty($p['states']) && substr($key, -2) !== '_C')
 			{
 				arsort($p['states']);
 				$title = (string) key($p['states']);

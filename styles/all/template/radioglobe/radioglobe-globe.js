@@ -43,10 +43,67 @@
 	var currentPlace = null;
 	var currentStations = [];
 	var searchTerm = '';
+	var searchPoint = null;		// punto cercato per coordinate, segnato da un anello
 	var searchTimer = null;
 	var userMoved = false;
 	var reticleTimer = null;
 	var pendingStation = 0;
+
+	/*
+	 * Stile dei punti (ACP > Preferenze globo):
+	 *  - 'dots'    puntini a dimensione fissa sullo schermo, come Radio Garden: a ogni zoom raggio e
+	 *              altezza vengono ricalcolati in proporzione all'altitudine, cosi' avvicinandosi i punti
+	 *              si separano invece di ingrandirsi e coprirsi a vicenda;
+	 *  - 'classic' i cilindri 3D di dimensione fissa sul terreno (comportamento originale).
+	 */
+	var dotsMode = cfg.markers !== 'classic';
+	var START_ALTITUDE = 2.3;
+	var DOT_SIZE = 0.14;		// raggio angolare di un puntino per unita' di altitudine (circa 5 px di diametro)
+	var markerAltitude = START_ALTITUDE;
+	var markerTimer = null;
+	var markerLastResize = 0;
+
+	/*
+	 * Colore dei puntini (ACP > Preferenze globo):
+	 *  - 'shades'  sfumature del colore scelto, piu' chiare dove ci sono piu' stazioni;
+	 *  - 'single'  tutti i luoghi dello stesso colore;
+	 *  - 'heat'    mappa di calore: blu (poche stazioni) -> verde -> giallo -> rosso (molte);
+	 *  - 'country' un colore diverso per ogni paese.
+	 */
+	var dotColor = /^#[0-9a-f]{6}$/i.test(cfg.dotColor || '') ? cfg.dotColor.toLowerCase() : '#1ed760';
+	var dotMode = ['shades', 'single', 'heat', 'country'].indexOf(cfg.dotMode) > -1 ? cfg.dotMode : 'shades';
+	var dotRgb = [parseInt(dotColor.substr(1, 2), 16), parseInt(dotColor.substr(3, 2), 16), parseInt(dotColor.substr(5, 2), 16)];
+	var countryColors = {};
+
+	function mixWhite(rgb, k) {
+		return 'rgb(' + rgb.map(function (c) { return Math.round(c + (255 - c) * k); }).join(',') + ')';
+	}
+
+	function rgba(rgb, a) {
+		return 'rgba(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ',' + a + ')';
+	}
+
+	function pointColor(p) {
+		if (dotMode === 'single') {
+			return dotColor;
+		}
+		if (dotMode === 'heat') {
+			// scala logaritmica: 1 stazione = blu (220), 60+ stazioni = rosso (0)
+			var t = Math.min(1, Math.log(Math.max(1, p.n)) / Math.log(60));
+			return 'hsl(' + Math.round(220 * (1 - t)) + ',90%,' + Math.round(55 + 10 * t) + '%)';
+		}
+		if (dotMode === 'country') {
+			var cc = (p.cc || p.key || '').substr(0, 2).toUpperCase();
+			if (!countryColors[cc]) {
+				// tonalita' stabile ricavata dal codice paese, mescolata perche' paesi con sigle vicine abbiano colori lontani
+				var x = ((cc.charCodeAt(0) || 0) << 8) | (cc.charCodeAt(1) || 0);
+				x ^= x >>> 16; x = Math.imul(x, 0x85ebca6b); x ^= x >>> 13; x = Math.imul(x, 0xc2b2ae35); x ^= x >>> 16; x = x >>> 0;
+				countryColors[cc] = 'hsl(' + (x % 360) + ',85%,60%)';
+			}
+			return countryColors[cc];
+		}
+		return p.n >= 25 ? mixWhite(dotRgb, 0.75) : (p.n >= 6 ? mixWhite(dotRgb, 0.3) : dotColor);
+	}
 
 	/* ------------------------------------------------------------------
 	 * Utilita'
@@ -93,7 +150,115 @@
 
 	function tolerance() {
 		var alt = globe ? globe.pointOfView().altitude : 2.5;
+		if (dotsMode) {
+			// raggio di aggancio proporzionale ai puntini: da vicino non si "prende" un luogo lontano
+			return Math.max(0.002, Math.min(5, alt * 0.5));
+		}
 		return Math.max(0.2, Math.min(5, alt * 1.4));
+	}
+
+	/* ------------------------------------------------------------------
+	 * Dimensione dei punti
+	 * ---------------------------------------------------------------- */
+	function markerRadius(p) {
+		if (!dotsMode) {
+			return Math.min(0.5, 0.12 + Math.sqrt(p.n) * 0.04);
+		}
+		var size = p.n >= 25 ? 1.6 : (p.n >= 6 ? 1.25 : 1);
+		return DOT_SIZE * markerAltitude * size;
+	}
+
+	function markerHeight() {
+		// quasi piatti: da vicino un'altezza fissa mostrerebbe il fianco del cilindro
+		// sempre proporzionale allo zoom: con un minimo fisso, da molto vicino il cilindro sarebbe piu' alto
+		// che largo e si vedrebbe di lato come una stanghetta
+		return dotsMode ? Math.max(0.0000001, markerAltitude * 0.0004) : 0.003;
+	}
+
+	/** Anelli di luogo e stazione: in modalita' puntini seguono lo zoom come i punti. */
+	function ringScale() {
+		return dotsMode ? Math.min(1, markerAltitude / 1.5) : 1;
+	}
+
+	function applyMarkerSize() {
+		// funzioni nuove a ogni chiamata: globe.gl ricostruisce i punti solo se l'accessor cambia
+		globe.pointAltitude(function () { return markerHeight(); })
+			.pointRadius(function (p) { return markerRadius(p); });
+		updateRings();
+	}
+
+	/*
+	 * globe.gl da' ai cilindri un'altezza minima fissa (circa 6 km): quando da vicino il raggio dei
+	 * puntini scende sotto quella misura, ai bordi dello schermo si vedrebbero di lato come stanghette.
+	 * Con pointsMerge tutti i punti sono un'unica mesh centrata sulla Terra: portando ogni vertice alla
+	 * stessa distanza dal centro, ogni cilindro diventa un disco piatto appoggiato sul globo.
+	 */
+	function flattenPointsMesh(obj) {
+		if (!obj || obj.__globeObjType !== 'points' || !obj.geometry || obj.geometry.__rgFlat) { return; }
+		var position = obj.geometry.getAttribute('position');
+		if (!position || !position.count) { return; }
+		var lift = globe.getGlobeRadius() * (1 + Math.max(0.000002, markerAltitude * 0.0004));
+		var a = position.array;
+		for (var i = 0; i < a.length; i += 3) {
+			var len = Math.sqrt(a[i] * a[i] + a[i + 1] * a[i + 1] + a[i + 2] * a[i + 2]) || 1;
+			var k = lift / len;
+			a[i] *= k;
+			a[i + 1] *= k;
+			a[i + 2] *= k;
+		}
+		position.needsUpdate = true;
+		obj.geometry.computeBoundingSphere();
+		obj.geometry.__rgFlat = true;
+	}
+
+	/**
+	 * globe.gl ricostruisce la mesh dei punti in momenti diversi (dopo il caricamento del globo, a ogni
+	 * cambio di dimensione...): invece di inseguire i tempi, la si appiattisce nel momento esatto in cui
+	 * viene aggiunta alla scena. Riguarda solo gli oggetti marcati da globe.gl come "points".
+	 */
+	function hookPointsMesh() {
+		var proto = Object.getPrototypeOf(Object.getPrototypeOf(globe.scene()));
+		if (!proto || typeof proto.add !== 'function' || proto.add.__rgHooked) { return; }
+		var originalAdd = proto.add;
+		var hookedAdd = function () {
+			for (var i = 0; i < arguments.length; i++) {
+				if (arguments[i] && arguments[i].__globeObjType === 'points') {
+					flattenPointsMesh(arguments[i]);
+				}
+			}
+			return originalAdd.apply(this, arguments);
+		};
+		hookedAdd.__rgHooked = true;
+		proto.add = hookedAdd;
+	}
+
+	/** Durante lo zoom: ridimensiona al massimo ogni 250 ms e comunque alla fine del movimento. */
+	function onZoom(pov) {
+		if (!dotsMode || !globe) { return; }
+		var alt = pov.altitude;
+		var changed = Math.abs(alt - markerAltitude) / markerAltitude > 0.12;
+		var now = Date.now();
+
+		if (changed && now - markerLastResize > 250) {
+			markerAltitude = alt;
+			markerLastResize = now;
+			applyMarkerSize();
+		}
+
+		clearTimeout(markerTimer);
+		markerTimer = setTimeout(function () {
+			var current = globe.pointOfView().altitude;
+			if (Math.abs(current - markerAltitude) / markerAltitude > 0.02) {
+				markerAltitude = current;
+				markerLastResize = Date.now();
+				applyMarkerSize();
+			}
+		}, 160);
+	}
+
+	/** Tasselli satellitari Esri World Imagery (piu' dettagliati man mano che ci si avvicina). */
+	function tileUrl(x, y, level) {
+		return 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/' + level + '/' + y + '/' + x;
 	}
 
 	function setStatus(text) {
@@ -116,27 +281,28 @@
 			.height(ui.stage.clientHeight)
 			.backgroundColor('rgba(0,0,0,0)')
 			.backgroundImageUrl(cfg.sky)
-			.globeImageUrl(cfg.texture)
 			.showAtmosphere(true)
-			.atmosphereColor('#7fe6a8')
+			.atmosphereColor(mixWhite(dotRgb, 0.45))
 			.atmosphereAltitude(0.16)
 			.pointsData([])
 			.pointLat('lat')
 			.pointLng('lng')
-			.pointAltitude(0.003)
-			.pointRadius(function (p) { return Math.min(0.5, 0.12 + Math.sqrt(p.n) * 0.04); })
-			.pointColor(function (p) { return p.n >= 25 ? '#c8ffd9' : (p.n >= 6 ? '#5cf08f' : '#1ed760'); })
-			.pointResolution(8)
+			.pointAltitude(function () { return markerHeight(); })
+			.pointRadius(function (p) { return markerRadius(p); })
+			.pointColor(pointColor)
+			.pointResolution(dotsMode ? 16 : 8)
+			.pointsTransitionDuration(0)
 			.pointsMerge(true)
+			.onZoom(onZoom)
 			.ringsData([])
 			.ringLat('lat')
 			.ringLng('lng')
 			.ringColor(function (r) {
 				return r.kind === 'play'
-					? function (t) { return 'rgba(30,215,96,' + (1 - t) + ')'; }
+					? function (t) { return rgba(dotRgb, 1 - t); }
 					: function (t) { return 'rgba(255,255,255,' + (0.85 * (1 - t)) + ')'; };
 			})
-			.ringMaxRadius(function (r) { return r.kind === 'play' ? 3.2 : 1.8; })
+			.ringMaxRadius(function (r) { return (r.kind === 'play' ? 3.2 : 1.8) * ringScale(); })
 			.ringPropagationSpeed(function (r) { return r.kind === 'play' ? 2.4 : 1.6; })
 			.ringRepeatPeriod(function (r) { return r.kind === 'play' ? 1100 : 1600; })
 			.onGlobeClick(function (coords) {
@@ -145,7 +311,18 @@
 				if (p) { selectPlace(p, true, true); }
 			});
 
-		globe.pointOfView({ lat: 41.9, lng: 12.5, altitude: 2.3 }, 0);
+		if (dotsMode) {
+			hookPointsMesh();
+		}
+
+		// Aspetto del globo: immagine unica (scuro, notte, Blue Marble) oppure tasselli satellitari
+		if (cfg.tiles) {
+			globe.globeTileEngineUrl(tileUrl);
+		} else {
+			globe.globeImageUrl(cfg.texture);
+		}
+
+		globe.pointOfView({ lat: 41.9, lng: 12.5, altitude: START_ALTITUDE }, 0);
 
 		var controls = globe.controls();
 		controls.autoRotate = !!cfg.autorotate;
@@ -248,6 +425,9 @@
 		if (s && typeof s.lat === 'number') {
 			rings.push({ lat: s.lat, lng: s.lng, kind: 'play' });
 		}
+		if (searchPoint) {
+			rings.push({ lat: searchPoint.lat, lng: searchPoint.lng, kind: 'search' });
+		}
 		globe.ringsData(rings);
 	}
 
@@ -260,6 +440,12 @@
 		return RG.request(url).then(function (data) {
 			places = ((data && data.places) || []).map(function (p) {
 				var o = { key: p[0], lat: p[1], lng: p[2], n: p[3], title: p[4], country: p[5], cc: p[6] };
+				// stazioni senza coordinate raccolte sulla regione ("CC_R_...") o sul paese ("CC_C")
+				if (/_R_[0-9a-f]+$/.test(o.key) && L.placeRegion) {
+					o.title += ' ' + L.placeRegion;
+				} else if (/_C$/.test(o.key) && L.placeCountry) {
+					o.title += ' ' + L.placeCountry;
+				}
 				byKey[o.key] = o;
 				return o;
 			});
@@ -436,6 +622,10 @@
 
 	function runSearch(term) {
 		searchTerm = term;
+		if (searchPoint) {
+			searchPoint = null;
+			updateRings();
+		}
 
 		if (term.length < 2) {
 			searchTerm = '';
@@ -457,6 +647,20 @@
 		RG.request(url).then(function (data) {
 			if (searchTerm !== term) { return; }
 			var list = (data && data.stations) || [];
+
+			// coordinate: il globo va sul punto, un anello lo segna e l'elenco e' per distanza
+			if (data && data.coords) {
+				var c = data.coords;
+				var label = (L.nearCoords || '%s').replace('%s', c.lat.toFixed(4) + ', ' + c.lng.toFixed(4));
+				searchPoint = { lat: c.lat, lng: c.lng };
+				ui.head.innerHTML = '';
+				ui.head.appendChild(el('h2', '', label));
+				flyTo(c.lat, c.lng, 0.12);
+				updateRings();
+				renderList(list, label, true, playAndLocate(list, label));
+				return;
+			}
+
 			renderList(list, L.searchResults.replace('%s', term), true, playAndLocate(list, L.searchResults.replace('%s', term)));
 		});
 	}

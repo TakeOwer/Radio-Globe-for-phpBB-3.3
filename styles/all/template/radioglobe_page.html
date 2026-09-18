@@ -12,7 +12,10 @@
 
 		<div class="rg-stage-foot">
 			<span>{RADIOGLOBE_STATION_COUNT} {L_RADIOGLOBE_STATIONS} &middot; {RADIOGLOBE_PLACE_COUNT} {L_RADIOGLOBE_PLACES}</span>
-			<a href="https://www.radio-browser.info/" target="_blank" rel="noopener">{L_RADIOGLOBE_DATA_SOURCE}</a>
+			<span>
+				<!-- IF S_RADIOGLOBE_TILES --><a href="https://www.esri.com/" target="_blank" rel="noopener">{L_RADIOGLOBE_IMAGERY_SOURCE}</a> &middot; <!-- ENDIF -->
+				<a href="https://www.radio-browser.info/" target="_blank" rel="noopener">{L_RADIOGLOBE_DATA_SOURCE}</a>
+			</span>
 		</div>
 	</div>
 

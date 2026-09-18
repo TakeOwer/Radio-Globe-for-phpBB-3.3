@@ -42,7 +42,10 @@ class http_client
 
 	public function user_agent()
 	{
-		return self::USER_AGENT . ' (+' . generate_board_url() . ')';
+		// forma "Mozilla/5.0 (compatible; ...)": alcuni server di streaming (es. SomaFM) non rispondono
+		// affatto a un User-Agent che non comincia cosi', e il titolo del brano non arrivava mai.
+		// Il nome dell'estensione e l'indirizzo del forum restano dichiarati.
+		return 'Mozilla/5.0 (compatible; ' . self::USER_AGENT . '; +' . generate_board_url() . ')';
 	}
 
 	protected function get_curl($url, array $headers, $timeout)

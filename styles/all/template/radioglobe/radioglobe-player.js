@@ -612,6 +612,10 @@
 		var text = el('span', 'rg-row-text');
 		var name = el('span', 'rg-row-name', station.name);
 		var subParts = [];
+		// ricerca per coordinate: distanza dal punto cercato
+		if (typeof station.distance === 'number') {
+			subParts.push(station.distance < 1 ? '< 1 km' : station.distance.toLocaleString() + ' km');
+		}
 		if (opts.showPlace !== false) {
 			subParts.push([station.state, station.country].filter(Boolean).join(', '));
 		}
