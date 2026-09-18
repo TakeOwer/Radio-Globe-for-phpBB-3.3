@@ -1,5 +1,10 @@
 # Radio Globe per phpBB 3.3
 
+![Version](https://img.shields.io/badge/version-1.1.2-105080)
+![phpBB](https://img.shields.io/badge/phpBB-3.3.17-377a33)
+![PHP](https://img.shields.io/badge/PHP-8.2.33-377a33)
+![License](https://img.shields.io/badge/license-GPL--2.0--only-7f7f7f)
+
 Radio di tutto il mondo su un globo 3D in stile Radio Garden, con un player in stile Spotify.
 
 ## Funzioni
