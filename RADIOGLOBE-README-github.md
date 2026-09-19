@@ -1,6 +1,6 @@
 # Radio Globe for phpBB 3.3
 
-![Version](https://img.shields.io/badge/version-1.2.1-105080)
+![Version](https://img.shields.io/badge/version-1.1.2-105080)
 ![phpBB](https://img.shields.io/badge/phpBB-3.3.x-377a33)
 ![PHP](https://img.shields.io/badge/PHP-%3E%3D7.4-377a33)
 ![License](https://img.shields.io/badge/license-GPL--2.0--only-7f7f7f)
@@ -37,7 +37,7 @@ Station data comes from [Radio Browser](https://www.radio-browser.info/), a free
 - **Fixed-size dots**, Radio Garden style: dots stay small at every zoom level and spread apart as you zoom in, instead of growing and covering each other. Classic 3D markers are still available.
 - **Custom dot colours** chosen from the ACP with a colour picker, plus four colouring modes: shades of the chosen colour, solid colour, heat map (blue → red by number of stations), or one colour per country. The atmosphere glow and the "now playing" ring follow the chosen colour.
 - Four globe looks: **Dark** (lightweight), **Earth at night**, **Blue Marble** and **Detailed satellite** (Esri World Imagery tiles that get sharper as you zoom in).
-- Central reticle: whatever place sits under the crosshair is shown and, when the reticle turns green, its first station starts playing. Clicking a dot opens the place and immediately starts its first station.
+- Central reticle: whatever place sits under the crosshair is shown and can be opened with one click. Clicking a dot opens the place and immediately starts its first station.
 - Optional automatic rotation of the globe while idle.
 - **Search** by station name, genre, country, region or city, with instant results.
 - **Search by coordinates**: type a position and the globe flies there, marks the point with a ring and lists the nearest stations sorted by distance (in km). Supported formats include:
@@ -61,16 +61,6 @@ Station data comes from [Radio Browser](https://www.radio-browser.info/), a free
 - Placeholder titles sent by many stations (such as "Unknown", "Tag1", the station name itself, empty "-" titles…) are filtered out.
 - **Album covers** are looked up on the iTunes Search API from the now-playing title and cached for 7 days. The station logo is used when nothing is found.
 
-### "Is listening" notices
-- When a member starts a station, a notice appears at the **top right of every board page**: "**Founder** is listening to: *station name* ♪ *now-playing title*".
-- The user name is shown in the **colour of their group** and links to their profile.
-- The notice fades in, closes by itself after **5 seconds** (configurable from 2 to 30) with a fade-out, and stays open while the mouse is over it. A × button closes it at once.
-- **Click the notice to listen to the same station**: it starts in the player, or the globe page opens on that station.
-- Fully responsive: on phones it spans the screen width at the top.
-- Shown to everybody who can listen to the radio, on every page (it also works when "Player across the board" is off). Your own listening is never shown to you.
-- Privacy: only groups with the permission **"Their listening is shown to others"** are announced (Registered users by default).
-- Lightweight: each open page checks for new listeners every 15 seconds, only while the tab is visible. Browser tabs share what has already been shown, so a notice does not repeat on every tab or page change. The same station is not announced again within 30 minutes, and quick station changes (next, next…) produce a single notice.
-
 ### Members
 - **Favourites** (a personal playlist), stored in the board database and available on every device.
 - **Listening history** (the last 30 stations) and a **queue** of what plays next.
@@ -90,8 +80,6 @@ Station data comes from [Radio Browser](https://www.radio-browser.info/), a free
 
 | Version | Changes |
 |---|---|
-| **1.2.1** | Radio Garden style tuning: when the central reticle turns green over a place, its first station starts playing by itself, on desktop and on phones/tablets (iPhone and iPad included). |
-| **1.2.0** | New "is listening" notices: "*User* is listening to: *station* ♪ *title*" at the top right of every page, with the group colour, fade in/out, auto-close after 5 s, click to listen. New ACP options and new permission. |
 | **1.1.2** | Dot colour chosen from the ACP (colour picker, 9 quick colours, hex field, live preview) and four colouring modes: shades, solid, heat map, one colour per country. Atmosphere and "now playing" ring follow the chosen colour. |
 | **1.1.1** | **Stability fix**: the board can no longer crash with `RouteNotFoundException` when the phpBB router cache is out of date after uploading the files. The player and the menu link are simply hidden until the cache is purged. |
 | **1.1.0** | Stations without coordinates placed in their region or country (new ACP option). Search by coordinates with a ring on the globe and results sorted by distance. |
@@ -186,14 +174,6 @@ Filters apply from the next station update.
 | Dot colouring | Shades | **Shades** of the chosen colour (lighter where there are more stations), **Solid colour**, **Heat map** (blue → red by number of stations) or **One colour per country**. A live preview shows the result before saving. |
 | Globe auto-rotation | Yes | The globe turns slowly while nobody is using it. |
 
-### "Is listening" notice
-| Option | Default | Description |
-|---|---|---|
-| Show who is listening | Yes | Turns the notices on or off for the whole board. |
-| Notice duration | 5 s | From 2 to 30 seconds. The notice stays open while the mouse is over it. |
-
-Who is announced is controlled by the permission "Their listening is shown to others" (see [Permissions](#-permissions)).
-
 ### Station comments
 | Option | Default | Description |
 |---|---|---|
@@ -213,10 +193,9 @@ Radio Globe adds a **Radio Globe** category to the phpBB permission system.
 | Can listen to the radio (globe and player) | User | Guests, Registered users |
 | Can add stations to favourites / playlist | User | Registered users |
 | Can comment on radio stations | User | Registered users |
-| Their listening is shown to others ("is listening") | User | Registered users |
 | Can delete anyone's station comments | Moderator | Full moderator and full admin roles |
 
-The easiest way to change them is **ACP → Extensions → Radio Globe → Authorised groups**: one row per group with four checkboxes (listen, favourites, comment, listening visible to others). The checkboxes write to the regular phpBB permissions, so you can also manage them in **ACP → Permissions**.
+The easiest way to change them is **ACP → Extensions → Radio Globe → Authorised groups**: one row per group with three checkboxes (listen, favourites, comment). The checkboxes write to the regular phpBB permissions, so you can also manage them in **ACP → Permissions**.
 
 > If a group uses a permission **role** (for example "Standard Features"), the change is applied to the role so the role assignment is kept. It therefore also applies to every other group using that role. The page lists the roles that were changed.
 
@@ -226,11 +205,10 @@ Guests and bots can listen (if allowed) but cannot use favourites or comments.
 
 ## 🎧 Using the globe and the player
 
-- **Explore:** drag to rotate, scroll or pinch to zoom. The place under the central reticle is shown at the top and, once the reticle turns green, its first station starts playing. Click it, or click any dot, to open the list of its stations; the first one starts playing.
+- **Explore:** drag to rotate, scroll or pinch to zoom. The place under the central reticle is shown at the top. Click it, or click any dot, to open the list of its stations; the first one starts playing.
 - **Search:** type in the search box to find stations by name, genre, country, region or city. Type coordinates to fly to a point and list the nearest stations with their distance.
 - **Player:** play/pause, previous/next inside the current list, shuffle, repeat (reconnects automatically if the stream drops), volume (arrow keys work on the slider), mini player and full screen. Press **Esc** to close panels and full screen.
 - **Queue, favourites and history:** open the list button in the player. Click the heart to add or remove a favourite.
-- **"Is listening" notices:** when someone starts a station a notice appears at the top right. Click it to listen too, click the name to open their profile, or close it with ×.
 - **Comments:** open the comments of the playing station. **Ctrl+Enter** sends. Authors and moderators can delete comments.
 - **Media keys:** the operating system media controls work while a station is playing.
 
@@ -259,7 +237,6 @@ The update downloads the station list from Radio Browser, applies the filters, i
 | A station shows "not playable" / mixed content | It is an HTTP stream on an HTTPS board: browsers block it. Enable "HTTPS streams only" to hide such stations. |
 | Changed filters have no effect | Filters apply from the next update: run **Update stations now**. |
 | Settings page: the colour field refuses a value | Use `#rrggbb` or `#rgb` (e.g. `#ff3b3b` or `#f80`). Fixed in 1.1.2: upload `adm/style/radioglobe_settings.html` and purge the cache if you installed an early 1.1.2 build. |
-| No "is listening" notices appear | Check ACP → Settings → "Show who is listening". The listener's group needs "Their listening is shown to others", the viewer's group needs "Can listen to the radio". You never see your own notice. Purge the cache after updating. |
 | The globe does not show at all | The browser needs WebGL. Try another browser or enable hardware acceleration. |
 
 ---
@@ -274,28 +251,15 @@ The update downloads the station list from Radio Browser, applies the filters, i
 
 ## 🔧 Technical notes
 
-- **Database tables:** `phpbb_radioglobe_stations`, `phpbb_radioglobe_places`, `phpbb_radioglobe_favorites`, `phpbb_radioglobe_comments`, `phpbb_radioglobe_listening` (with your table prefix). The listening table only keeps the last hour.
-- **Routes:** the page is `/radio`; the data endpoints are under `/radio/data/…` (places, place, search, station, now playing, favourites, comments, listen, listening). All write requests are POST and protected by a link hash.
+- **Database tables:** `phpbb_radioglobe_stations`, `phpbb_radioglobe_places`, `phpbb_radioglobe_favorites`, `phpbb_radioglobe_comments` (with your table prefix).
+- **Routes:** the page is `/radio`; the data endpoints are under `/radio/data/…` (places, place, search, station, now playing, favourites, comments). All write requests are POST and protected by a link hash.
 - **External services:** Radio Browser (station list, only during updates), iTunes Search API (covers, server side, cached), Esri World Imagery tiles (only with the satellite look, loaded by the visitor's browser), stream servers (ICY/AzuraCast titles, server side, cached).
-- **Browser storage:** the player keeps its state and the listening history in `localStorage` (`radioglobe.state.v1`, `radioglobe.history.v1`); the notices remember the last one shown in `radioglobe.toast.last`. Favourites and comments are stored in the board database.
+- **Browser storage:** the player keeps its state and the listening history in `localStorage` (`radioglobe.state.v1`, `radioglobe.history.v1`). Favourites and comments are stored in the board database.
 - **Assets** are cache-busted automatically when the CSS/JS files change.
-- The "is listening" notices read the now-playing title from the server cache only: they never open extra connections to the streams.
 
 ---
 
 ## 📜 Changelog
-
-### 1.2.1
-- New: when the reticle turns green over a place, the first station of that place starts playing automatically (no click needed), like Radio Garden. It does not restart if you are already listening to a station of that place.
-- Mobile: the audio is unlocked at the first touch, so automatic playback also works on iPhone and iPad.
-
-### 1.2.0
-- New: "is listening" notices at the top right of every board page, with the user name in the group colour, station, now-playing title and cover/logo.
-- Fade in and fade out, automatic close after 5 seconds (2–30, configurable), pause while hovering, close button, click to listen to the same station.
-- Responsive: full width at the top on phones.
-- New ACP section "“Is listening” notice" (on/off, duration).
-- New permission "Their listening is shown to others" (Registered users by default), also on the Authorised groups page.
-- New migration: `add_listen_toast` (table `radioglobe_listening`, settings `radioglobe_toast_enabled`, `radioglobe_toast_seconds`, permission `u_radioglobe_announce`).
 
 ### 1.1.2
 - New: dot colour selectable in the ACP with a colour picker, 9 quick colours, hex field and "Reset to green".

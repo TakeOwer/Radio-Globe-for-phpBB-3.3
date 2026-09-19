@@ -404,7 +404,10 @@
 		if (view !== 'explore' || searchTerm) { return; }
 		var p = updateReticle();
 		if (p && (!currentPlace || currentPlace.key !== p.key)) {
-			selectPlace(p, false);
+			// come Radio Garden: quando il mirino diventa verde parte la prima stazione del luogo,
+			// a meno che non si stia gia' ascoltando una stazione di quello stesso luogo
+			var s = RG.current();
+			selectPlace(p, false, !(s && s.place === p.key && RG.isPlaying()));
 		}
 	}
 

@@ -100,6 +100,24 @@ class nowplaying
 	}
 
 	/**
+	 * Solo quello che c'e' gia' in cache, senza leggere lo stream: per gli avvisi
+	 * "sta ascoltando" basta il titolo che il player di chi ascolta ha appena chiesto.
+	 *
+	 * @return array|null
+	 */
+	public function cached($station_id)
+	{
+		if (empty($this->config['radioglobe_nowplaying']))
+		{
+			return null;
+		}
+
+		$cached = $this->cache->get('_radioglobe_np_' . (int) $station_id);
+
+		return is_array($cached) ? $cached : null;
+	}
+
+	/**
 	 * Stazioni AzuraCast (indirizzo ".../listen/<nome>/..."): titolo dall'API /api/nowplaying/<nome>.
 	 * Se la radio non ha l'API lo si ricorda per un giorno, per non interrogarla a ogni brano.
 	 *

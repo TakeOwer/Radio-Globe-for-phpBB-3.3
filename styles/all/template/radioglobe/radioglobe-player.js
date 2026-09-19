@@ -342,6 +342,11 @@
 		broadcast();
 		render();
 		emit('station', state.station);
+
+		// avviso "sta ascoltando" per gli altri utenti (il forum ignora le ripetizioni)
+		if (changed && cfg.announce && cfg.listenUrl) {
+			request(cfg.listenUrl, { post: { station_id: state.station.id } }).catch(function () {});
+		}
 	}
 
 	function slim(s) {
@@ -446,6 +451,25 @@
 		render();
 		emit('station', null);
 	}
+
+	/*
+	 * iPhone/iPad: l'audio puo' partire senza un clic (mirino verde sul globo) solo se l'elemento
+	 * e' gia' stato avviato una volta durante un tocco. Al primo tocco/tasto lo si "sblocca"
+	 * avviando e fermando subito un attimo di silenzio; sugli altri browser non cambia nulla.
+	 */
+	var SILENCE = 'data:audio/wav;base64,UklGRnQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVAAAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA==';
+	var UNLOCK_EVENTS = ['touchend', 'pointerup', 'keydown'];
+	function unlockAudio() {
+		UNLOCK_EVENTS.forEach(function (t) { document.removeEventListener(t, unlockAudio, true); });
+		if (!audio.paused || state.wantPlay) { return; }
+		audio.src = SILENCE;
+		var p = audio.play();
+		if (p && p.catch) { p.catch(function () {}); }
+		audio.pause();
+		audio.removeAttribute('src');
+		audio.load();
+	}
+	UNLOCK_EVENTS.forEach(function (t) { document.addEventListener(t, unlockAudio, true); });
 
 	audio.addEventListener('playing', function () {
 		state.loading = false;
