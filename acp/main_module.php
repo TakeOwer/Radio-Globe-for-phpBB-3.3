@@ -19,7 +19,7 @@ class main_module
 	public $tpl_name;
 
 	/** Permessi gestiti dalla scheda "Gruppi autorizzati". */
-	const GROUP_PERMISSIONS = ['u_radioglobe_listen', 'u_radioglobe_favorite', 'u_radioglobe_comment'];
+	const GROUP_PERMISSIONS = ['u_radioglobe_listen', 'u_radioglobe_favorite', 'u_radioglobe_comment', 'u_radioglobe_announce'];
 
 	public function main($id, $mode)
 	{
@@ -191,6 +191,8 @@ class main_module
 			$config->set('radioglobe_dot_color', $dot_color);
 			$config->set('radioglobe_dot_mode', $dot_mode);
 			$config->set('radioglobe_autorotate', $request->variable('radioglobe_autorotate', 1));
+			$config->set('radioglobe_toast_enabled', $request->variable('radioglobe_toast_enabled', 1));
+			$config->set('radioglobe_toast_seconds', max(2, min(30, $request->variable('radioglobe_toast_seconds', 5))));
 
 			$config->set('radioglobe_comments_enabled', $request->variable('radioglobe_comments_enabled', 1));
 			$config->set('radioglobe_comment_maxlen', max(50, min(5000, $request->variable('radioglobe_comment_maxlen', 1000))));
@@ -242,6 +244,8 @@ class main_module
 			'RADIOGLOBE_DOT_COLOR'			=> isset($config['radioglobe_dot_color']) ? $config['radioglobe_dot_color'] : '#1ed760',
 			'RADIOGLOBE_DOT_MODE'			=> isset($config['radioglobe_dot_mode']) ? $config['radioglobe_dot_mode'] : 'shades',
 			'S_RADIOGLOBE_AUTOROTATE'		=> (bool) $config['radioglobe_autorotate'],
+			'S_RADIOGLOBE_TOAST_ENABLED'	=> !isset($config['radioglobe_toast_enabled']) || (bool) $config['radioglobe_toast_enabled'],
+			'RADIOGLOBE_TOAST_SECONDS'		=> isset($config['radioglobe_toast_seconds']) ? (int) $config['radioglobe_toast_seconds'] : 5,
 			'S_RADIOGLOBE_COMMENTS_ENABLED'	=> (bool) $config['radioglobe_comments_enabled'],
 			'RADIOGLOBE_COMMENT_MAXLEN'		=> (int) $config['radioglobe_comment_maxlen'],
 			'RADIOGLOBE_COMMENTS_PER_PAGE'	=> (int) $config['radioglobe_comments_per_page'],
@@ -497,6 +501,7 @@ class main_module
 			'u_radioglobe_listen'	=> 'can_listen',
 			'u_radioglobe_favorite'	=> 'can_favorite',
 			'u_radioglobe_comment'	=> 'can_comment',
+			'u_radioglobe_announce'	=> 'can_announce',
 		];
 
 		add_form_key('radioglobe_groups');
@@ -607,6 +612,7 @@ class main_module
 				'S_CAN_LISTEN'	=> isset($settings['u_radioglobe_listen']) && (int) $settings['u_radioglobe_listen'] === ACL_YES,
 				'S_CAN_FAVORITE'=> isset($settings['u_radioglobe_favorite']) && (int) $settings['u_radioglobe_favorite'] === ACL_YES,
 				'S_CAN_COMMENT'	=> isset($settings['u_radioglobe_comment']) && (int) $settings['u_radioglobe_comment'] === ACL_YES,
+				'S_CAN_ANNOUNCE'=> isset($settings['u_radioglobe_announce']) && (int) $settings['u_radioglobe_announce'] === ACL_YES,
 			]);
 		}
 		$db->sql_freeresult($result);

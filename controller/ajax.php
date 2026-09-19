@@ -13,6 +13,7 @@ namespace salvocortesiano\radioglobe\controller;
 use salvocortesiano\radioglobe\repository\station_repository;
 use salvocortesiano\radioglobe\repository\favorite_repository;
 use salvocortesiano\radioglobe\repository\comment_repository;
+use salvocortesiano\radioglobe\repository\listen_repository;
 use salvocortesiano\radioglobe\service\nowplaying;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
@@ -30,6 +31,7 @@ class ajax
 	protected $favorites;
 	protected $comments;
 	protected $nowplaying;
+	protected $listens;
 	protected $root_path;
 	protected $php_ext;
 
@@ -43,6 +45,7 @@ class ajax
 		favorite_repository $favorites,
 		comment_repository $comments,
 		nowplaying $nowplaying,
+		listen_repository $listens,
 		$root_path,
 		$php_ext
 	)
@@ -56,6 +59,7 @@ class ajax
 		$this->favorites = $favorites;
 		$this->comments = $comments;
 		$this->nowplaying = $nowplaying;
+		$this->listens = $listens;
 		$this->root_path = $root_path;
 		$this->php_ext = $php_ext;
 
@@ -307,6 +311,95 @@ class ajax
 			'favorite'	=> $now,
 			'message'	=> $this->user->lang($now ? 'RADIOGLOBE_FAV_ADDED' : 'RADIOGLOBE_FAV_REMOVED'),
 		]);
+	}
+
+	/* ------------------------------------------------------------------
+	 * Avviso "sta ascoltando"
+	 * ---------------------------------------------------------------- */
+
+	protected function toast_enabled()
+	{
+		return !empty($this->config['radioglobe_toast_enabled']);
+	}
+
+	/**
+	 * Il player segnala che l'utente ha fatto partire una stazione.
+	 */
+	public function listen()
+	{
+		if (!$this->toast_enabled() || !$this->can_listen() || $this->is_guest() || !$this->auth->acl_get('u_radioglobe_announce'))
+		{
+			return new JsonResponse(['success' => true, 'announced' => false]);
+		}
+
+		if (!$this->valid_hash())
+		{
+			return $this->error('FORM_INVALID', 400);
+		}
+
+		$station_id = $this->request->variable('station_id', 0);
+
+		if (!$this->stations->get_station($station_id))
+		{
+			return $this->error('RADIOGLOBE_STATION_NOT_FOUND', 404);
+		}
+
+		return new JsonResponse([
+			'success'	=> true,
+			'announced'	=> $this->listens->add($this->user->data['user_id'], $station_id),
+		]);
+	}
+
+	/**
+	 * Ascolti degli altri utenti dopo l'evento "since". Senza "since" (prima
+	 * visita) restituisce solo il punto di partenza, per non mostrare ascolti vecchi.
+	 */
+	public function listening()
+	{
+		if (!$this->toast_enabled() || !$this->can_listen())
+		{
+			return new JsonResponse(['success' => false, 'last' => 0, 'events' => []]);
+		}
+
+		$since = $this->request->variable('since', -1);
+
+		// prima visita: solo il punto di partenza, niente ascolti gia' passati
+		if ($since < 0)
+		{
+			return $this->no_store(['success' => true, 'last' => $this->listens->last_id(), 'events' => []]);
+		}
+
+		$events = [];
+		$last = $since;
+		$me = $this->is_guest() ? 0 : (int) $this->user->data['user_id'];
+
+		foreach ($this->listens->recent($since, $me) as $row)
+		{
+			$np = $this->nowplaying->cached($row['station_id']);
+			$colour = preg_match('/^[0-9a-f]{6}$/i', (string) $row['user_colour']) ? '#' . $row['user_colour'] : '';
+
+			$events[] = [
+				'id'		=> (int) $row['event_id'],
+				'user'		=> $row['username'],
+				'colour'	=> $colour,
+				'profile'	=> append_sid(generate_board_url() . '/memberlist.' . $this->php_ext, 'mode=viewprofile&u=' . (int) $row['user_id'], false),
+				'title'		=> $np ? $np['title'] : '',
+				'cover'		=> $np ? $np['cover'] : '',
+				'station'	=> station_repository::to_public($row),
+			];
+			$last = max($last, (int) $row['event_id']);
+		}
+
+		return $this->no_store(['success' => true, 'last' => $last, 'top' => $this->listens->last_id(), 'events' => $events]);
+	}
+
+	protected function no_store(array $data)
+	{
+		$response = new JsonResponse($data);
+		$response->setPrivate();
+		$response->headers->addCacheControlDirective('no-store');
+
+		return $response;
 	}
 
 	/* ------------------------------------------------------------------

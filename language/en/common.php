@@ -81,6 +81,8 @@ $lang = array_merge($lang, [
 	'RADIOGLOBE_RESUME'				=> 'Click to resume listening',
 	'RADIOGLOBE_WEBSITE'			=> 'Station website',
 	'RADIOGLOBE_CLOSE'				=> 'Close',
+	'RADIOGLOBE_TOAST_LISTENING'	=> '%s is listening to:',
+	'RADIOGLOBE_TOAST_PLAY'		=> 'Click to listen too',
 	'RADIOGLOBE_CLOSE_PLAYER'		=> 'Close the player',
 	'RADIOGLOBE_INACTIVE'			=> 'Station no longer available',
 

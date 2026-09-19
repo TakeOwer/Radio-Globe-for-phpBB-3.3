@@ -3,6 +3,10 @@
 .rg-acp-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; background: #1a7f45; color: #fff; font-size: 11px; font-weight: bold; }
 .rg-acp-note { border-left: 4px solid #1a7f45; background: #f1f8f4; padding: 10px 14px; margin: 10px 0 16px; }
 .rg-acp-note.rg-warn { border-left-color: #e69114; background: #fdf8f0; }
+.rg-acp-dedication { margin: -6px 0 16px; padding: 12px 16px; border-radius: 6px; border-left: 4px solid #8e0e1f; background: linear-gradient(90deg, #b3122a 0%, #d8344f 55%, #f07a8c 100%); color: #fff; font-size: 1.15em; font-style: italic; font-weight: bold; letter-spacing: .01em; text-shadow: 0 1px 1px rgba(0, 0, 0, .25); box-shadow: 0 2px 8px rgba(179, 18, 42, .25); }
+.rg-acp-heart { display: inline-block; margin-left: 4px; font-style: normal; color: #fff; animation: rg-acp-beat 1.6s ease-in-out infinite; }
+@keyframes rg-acp-beat { 0%, 60%, 100% { transform: scale(1); } 20% { transform: scale(1.25); } 40% { transform: scale(.95); } }
+@media (prefers-reduced-motion: reduce) { .rg-acp-heart { animation: none; } }
 .rg-hours { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 6px; max-width: 720px; }
 .rg-hours label { display: flex; align-items: center; gap: 4px; padding: 5px 6px; border: 1px solid #ccd3d9; border-radius: 4px; background: #fff; cursor: pointer; white-space: nowrap; }
 .rg-hours label.rg-on { border-color: #1a7f45; background: #e6f4ec; font-weight: bold; }

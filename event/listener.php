@@ -13,6 +13,7 @@ namespace salvocortesiano\radioglobe\event;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use salvocortesiano\radioglobe\repository\favorite_repository;
 use salvocortesiano\radioglobe\repository\comment_repository;
+use salvocortesiano\radioglobe\repository\listen_repository;
 
 /**
  * Lingua, permessi, voce di menu e player in fondo a ogni pagina.
@@ -26,6 +27,7 @@ class listener implements EventSubscriberInterface
 	protected $config;
 	protected $favorites;
 	protected $comments;
+	protected $listens;
 	protected $root_path;
 
 	public static function getSubscribedEvents()
@@ -46,6 +48,7 @@ class listener implements EventSubscriberInterface
 		\phpbb\config\config $config,
 		favorite_repository $favorites,
 		comment_repository $comments,
+		listen_repository $listens,
 		$root_path
 	)
 	{
@@ -56,6 +59,7 @@ class listener implements EventSubscriberInterface
 		$this->config = $config;
 		$this->favorites = $favorites;
 		$this->comments = $comments;
+		$this->listens = $listens;
 		$this->root_path = $root_path;
 	}
 
@@ -82,6 +86,7 @@ class listener implements EventSubscriberInterface
 		$permissions['u_radioglobe_listen'] = ['lang' => 'ACL_U_RADIOGLOBE_LISTEN', 'cat' => 'radioglobe'];
 		$permissions['u_radioglobe_favorite'] = ['lang' => 'ACL_U_RADIOGLOBE_FAVORITE', 'cat' => 'radioglobe'];
 		$permissions['u_radioglobe_comment'] = ['lang' => 'ACL_U_RADIOGLOBE_COMMENT', 'cat' => 'radioglobe'];
+		$permissions['u_radioglobe_announce'] = ['lang' => 'ACL_U_RADIOGLOBE_ANNOUNCE', 'cat' => 'radioglobe'];
 		$permissions['m_radioglobe_comments'] = ['lang' => 'ACL_M_RADIOGLOBE_COMMENTS', 'cat' => 'radioglobe'];
 		$event['permissions'] = $permissions;
 	}
@@ -116,6 +121,8 @@ class listener implements EventSubscriberInterface
 			'commentsUrl'		=> $this->safe_route('salvocortesiano_radioglobe_comments', ['station_id' => 0], false),
 			'commentAddUrl'		=> $this->safe_route('salvocortesiano_radioglobe_comment_add', [], false),
 			'commentDeleteUrl'	=> $this->safe_route('salvocortesiano_radioglobe_comment_delete', [], false),
+			'listenUrl'			=> $this->safe_route('salvocortesiano_radioglobe_listen', [], false),
+			'listeningUrl'		=> $this->safe_route('salvocortesiano_radioglobe_listening', [], false),
 		];
 
 		// Cache del router non allineata (file appena caricati, cache non
@@ -125,10 +132,23 @@ class listener implements EventSubscriberInterface
 			return;
 		}
 
+		$toast = !empty($this->config['radioglobe_toast_enabled']);
+		$toast_config = [
+			'listeningUrl'	=> $urls['listeningUrl'],
+			'pageUrl'		=> $urls['pageUrl'],
+			'seconds'		=> max(2, min(30, isset($this->config['radioglobe_toast_seconds']) ? (int) $this->config['radioglobe_toast_seconds'] : 5)),
+			'lang'			=> [
+				'listening'	=> $this->user->lang('RADIOGLOBE_TOAST_LISTENING'),
+				'play'		=> $this->user->lang('RADIOGLOBE_TOAST_PLAY'),
+				'close'		=> $this->user->lang('RADIOGLOBE_CLOSE'),
+			],
+		];
+
 		$player_config = $urls + [
 			'hash'				=> generate_link_hash('radioglobe_ajax'),
 			'canFavorite'		=> $can_fav,
 			'canComment'		=> $can_comment,
+			'announce'			=> $toast && !$guest && $this->auth->acl_get('u_radioglobe_announce'),
 			'commentsEnabled'	=> !empty($this->config['radioglobe_comments_enabled']),
 			'nowPlaying'		=> !empty($this->config['radioglobe_nowplaying']),
 			'isRadioPage'		=> $is_page,
@@ -140,6 +160,8 @@ class listener implements EventSubscriberInterface
 		$this->template->assign_vars([
 			'U_RADIOGLOBE_PAGE'			=> !empty($this->config['radioglobe_nav_link']) ? $this->safe_route('salvocortesiano_radioglobe_page') : '',
 			'S_RADIOGLOBE_PLAYER'		=> $show_player,
+			'S_RADIOGLOBE_TOAST'		=> $toast,
+			'RADIOGLOBE_TOAST_CONFIG'	=> json_encode($toast_config, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
 			'RADIOGLOBE_PLAYER_ALPHA'	=> number_format($this->player_opacity() / 100, 2, '.', ''),
 			'S_RADIOGLOBE_TRANSLUCENT'	=> $this->player_opacity() < 100,
 			'RADIOGLOBE_PLAYER_CONFIG'	=> json_encode($player_config, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
@@ -158,6 +180,7 @@ class listener implements EventSubscriberInterface
 
 		$this->favorites->delete_users($user_ids);
 		$this->comments->delete_users($user_ids);
+		$this->listens->delete_users($user_ids);
 	}
 
 	/**
@@ -256,7 +279,7 @@ class listener implements EventSubscriberInterface
 		$base = $this->root_path . 'ext/salvocortesiano/radioglobe/styles/all/';
 		$latest = 0;
 
-		foreach (['theme/radioglobe.css', 'template/radioglobe/radioglobe-player.js', 'template/radioglobe/radioglobe-globe.js'] as $file)
+		foreach (['theme/radioglobe.css', 'template/radioglobe/radioglobe-player.js', 'template/radioglobe/radioglobe-globe.js', 'template/radioglobe/radioglobe-toast.js'] as $file)
 		{
 			$time = @filemtime($base . $file);
 

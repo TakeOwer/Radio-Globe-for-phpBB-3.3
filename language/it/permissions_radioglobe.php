@@ -23,5 +23,6 @@ $lang = array_merge($lang, [
 	'ACL_U_RADIOGLOBE_LISTEN'		=> 'Può ascoltare la radio (globo e player)',
 	'ACL_U_RADIOGLOBE_FAVORITE'		=> 'Può aggiungere le stazioni ai preferiti / playlist',
 	'ACL_U_RADIOGLOBE_COMMENT'		=> 'Può commentare le stazioni radio',
+	'ACL_U_RADIOGLOBE_ANNOUNCE'		=> 'Il suo ascolto viene mostrato agli altri («sta ascoltando»)',
 	'ACL_M_RADIOGLOBE_COMMENTS'		=> 'Può eliminare i commenti alle stazioni di tutti',
 ]);

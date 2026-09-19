@@ -16,6 +16,7 @@
 	<fieldset>
 		<legend>{L_RADIOGLOBE_SET_SOURCE}</legend>
 		<div class="rg-acp-note">{L_RADIOGLOBE_SOURCE_NOTE}</div>
+		<div class="rg-acp-dedication">{L_RADIOGLOBE_DEDICATION} <span class="rg-acp-heart" aria-hidden="true">&#10084;</span></div>
 
 		<dl>
 			<dt><label for="radioglobe_https_only">{L_RADIOGLOBE_HTTPS_ONLY}:</label><br /><span>{L_RADIOGLOBE_HTTPS_ONLY_EXPLAIN}</span></dt>
@@ -240,6 +241,22 @@
 				<label><input type="radio" class="radio" id="radioglobe_autorotate" name="radioglobe_autorotate" value="1"<!-- IF S_RADIOGLOBE_AUTOROTATE --> checked="checked"<!-- ENDIF --> /> {L_YES}</label>
 				<label><input type="radio" class="radio" name="radioglobe_autorotate" value="0"<!-- IF not S_RADIOGLOBE_AUTOROTATE --> checked="checked"<!-- ENDIF --> /> {L_NO}</label>
 			</dd>
+		</dl>
+	</fieldset>
+
+	<fieldset>
+		<legend>{L_RADIOGLOBE_SET_TOAST}</legend>
+
+		<dl>
+			<dt><label for="radioglobe_toast_enabled">{L_RADIOGLOBE_TOAST_ENABLED}:</label><br /><span>{L_RADIOGLOBE_TOAST_ENABLED_EXPLAIN}</span></dt>
+			<dd>
+				<label><input type="radio" class="radio" id="radioglobe_toast_enabled" name="radioglobe_toast_enabled" value="1"<!-- IF S_RADIOGLOBE_TOAST_ENABLED --> checked="checked"<!-- ENDIF --> /> {L_YES}</label>
+				<label><input type="radio" class="radio" name="radioglobe_toast_enabled" value="0"<!-- IF not S_RADIOGLOBE_TOAST_ENABLED --> checked="checked"<!-- ENDIF --> /> {L_NO}</label>
+			</dd>
+		</dl>
+		<dl>
+			<dt><label for="radioglobe_toast_seconds">{L_RADIOGLOBE_TOAST_SECONDS}:</label><br /><span>{L_RADIOGLOBE_TOAST_SECONDS_EXPLAIN}</span></dt>
+			<dd><input type="number" class="inputbox autowidth" id="radioglobe_toast_seconds" name="radioglobe_toast_seconds" value="{RADIOGLOBE_TOAST_SECONDS}" min="2" max="30" step="1" /> {L_RADIOGLOBE_SECONDS}</dd>
 		</dl>
 	</fieldset>
 

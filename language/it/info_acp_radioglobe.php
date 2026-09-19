@@ -35,8 +35,9 @@ $lang = array_merge($lang, [
 	'RADIOGLOBE_SETTINGS_SAVED'		=> 'Impostazioni salvate.',
 	'RADIOGLOBE_FILTERS_CHANGED'	=> 'Hai cambiato i filtri delle stazioni: saranno applicati al prossimo aggiornamento. %sAggiorna adesso%s',
 
+	'RADIOGLOBE_DEDICATION'			=> '“A mia moglie, la donna più importante della mia vita”',
 	'RADIOGLOBE_SET_SOURCE'			=> 'Stazioni e filtri',
-	'RADIOGLOBE_SOURCE_NOTE'		=> 'Vengono importate solo le stazioni con coordinate geografiche e verificate come funzionanti da Radio Browser. I filtri valgono dal prossimo aggiornamento.',
+	'RADIOGLOBE_SOURCE_NOTE'		=> 'Vengono importate le stazioni verificate come funzionanti da Radio Browser: quelle con coordinate geografiche e, se l’opzione qui sotto è attiva, anche quelle senza, collocate nella loro regione o nel loro paese. I filtri valgono dal prossimo aggiornamento.',
 	'RADIOGLOBE_HTTPS_ONLY'			=> 'Solo stream HTTPS',
 	'RADIOGLOBE_HTTPS_ONLY_EXPLAIN'	=> 'Consigliato se il forum è in HTTPS: i browser bloccano l’audio HTTP su pagine sicure (“mixed content”). Se disattivato, le stazioni HTTP compaiono ma sono segnalate come non riproducibili.',
 	'RADIOGLOBE_EXCLUDE_HLS'		=> 'Escludi gli stream HLS',
@@ -101,6 +102,12 @@ $lang = array_merge($lang, [
 	'RADIOGLOBE_DOT_RESET'          	=> 'Ripristina verde',
 	'RADIOGLOBE_AUTOROTATE'			=> 'Rotazione automatica del globo',
 
+	'RADIOGLOBE_SET_TOAST'			=> 'Avviso «sta ascoltando»',
+	'RADIOGLOBE_TOAST_ENABLED'		=> 'Mostra chi sta ascoltando',
+	'RADIOGLOBE_TOAST_ENABLED_EXPLAIN'	=> 'Quando un utente fa partire una stazione, in alto a destra su tutte le pagine del forum compare per qualche secondo «Utente sta ascoltando: stazione» con il titolo in onda, se disponibile. Il nome ha il colore del gruppo. Cliccando l’avviso si ascolta la stessa stazione. Lo vedono gli utenti che possono ascoltare la radio; vengono annunciati solo gli utenti dei gruppi con «Ascolto visibile agli altri» (scheda Gruppi autorizzati).',
+	'RADIOGLOBE_TOAST_SECONDS'		=> 'Durata dell’avviso',
+	'RADIOGLOBE_TOAST_SECONDS_EXPLAIN'	=> 'Da 2 a 30 secondi. Con il mouse sopra l’avviso resta aperto.',
+
 	'RADIOGLOBE_SET_COMMENTS'		=> 'Commenti alle stazioni',
 	'RADIOGLOBE_COMMENTS_ENABLED'	=> 'Commenti attivi',
 	'RADIOGLOBE_COMMENT_MAXLEN'		=> 'Lunghezza massima di un commento',
@@ -149,6 +156,7 @@ $lang = array_merge($lang, [
 	'RADIOGLOBE_CAN_LISTEN'			=> 'Ascoltare la radio',
 	'RADIOGLOBE_CAN_FAVORITE'		=> 'Preferiti / playlist',
 	'RADIOGLOBE_CAN_COMMENT'		=> 'Commentare',
+	'RADIOGLOBE_CAN_ANNOUNCE'		=> 'Ascolto visibile agli altri',
 	'RADIOGLOBE_USES_ROLE'			=> 'usa un ruolo',
 	'RADIOGLOBE_GROUPS_UPDATED'		=> 'Permessi dei gruppi aggiornati.',
 	'RADIOGLOBE_GROUPS_UNCHANGED'	=> 'Nessuna modifica da salvare.',

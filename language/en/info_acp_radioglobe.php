@@ -34,8 +34,9 @@ $lang = array_merge($lang, [
 	'RADIOGLOBE_SETTINGS_SAVED'		=> 'Settings saved.',
 	'RADIOGLOBE_FILTERS_CHANGED'	=> 'You changed the station filters: they apply from the next update. %sUpdate now%s',
 
+	'RADIOGLOBE_DEDICATION'			=> '“To my wife, the most important woman in my life”',
 	'RADIOGLOBE_SET_SOURCE'			=> 'Stations and filters',
-	'RADIOGLOBE_SOURCE_NOTE'		=> 'Only stations with geographic coordinates that Radio Browser verified as working are imported. Filters apply from the next update.',
+	'RADIOGLOBE_SOURCE_NOTE'		=> 'Stations that Radio Browser verified as working are imported: those with geographic coordinates and, when the option below is enabled, those without, placed in their region or country. Filters apply from the next update.',
 	'RADIOGLOBE_HTTPS_ONLY'			=> 'HTTPS streams only',
 	'RADIOGLOBE_HTTPS_ONLY_EXPLAIN'	=> 'Recommended if the board uses HTTPS: browsers block HTTP audio on secure pages (mixed content). If disabled, HTTP stations are listed but marked as not playable.',
 	'RADIOGLOBE_EXCLUDE_HLS'		=> 'Exclude HLS streams',
@@ -100,6 +101,12 @@ $lang = array_merge($lang, [
 	'RADIOGLOBE_DOT_RESET'          	=> 'Reset to green',
 	'RADIOGLOBE_AUTOROTATE'			=> 'Globe auto-rotation',
 
+	'RADIOGLOBE_SET_TOAST'			=> '“Is listening” notice',
+	'RADIOGLOBE_TOAST_ENABLED'		=> 'Show who is listening',
+	'RADIOGLOBE_TOAST_ENABLED_EXPLAIN'	=> 'When a user starts a station, “User is listening to: station” appears for a few seconds at the top right of every board page, with the now-playing title when available. The name uses the group colour. Clicking the notice plays the same station. It is shown to users who can listen to the radio; only users in groups with “Listening visible to others” (Authorised groups page) are announced.',
+	'RADIOGLOBE_TOAST_SECONDS'		=> 'Notice duration',
+	'RADIOGLOBE_TOAST_SECONDS_EXPLAIN'	=> 'From 2 to 30 seconds. The notice stays open while the mouse is over it.',
+
 	'RADIOGLOBE_SET_COMMENTS'		=> 'Station comments',
 	'RADIOGLOBE_COMMENTS_ENABLED'	=> 'Comments enabled',
 	'RADIOGLOBE_COMMENT_MAXLEN'		=> 'Maximum comment length',
@@ -146,6 +153,7 @@ $lang = array_merge($lang, [
 	'RADIOGLOBE_CAN_LISTEN'			=> 'Listen to the radio',
 	'RADIOGLOBE_CAN_FAVORITE'		=> 'Favourites / playlist',
 	'RADIOGLOBE_CAN_COMMENT'		=> 'Comment',
+	'RADIOGLOBE_CAN_ANNOUNCE'		=> 'Listening visible to others',
 	'RADIOGLOBE_USES_ROLE'			=> 'uses a role',
 	'RADIOGLOBE_GROUPS_UPDATED'		=> 'Group permissions updated.',
 	'RADIOGLOBE_GROUPS_UNCHANGED'	=> 'Nothing to save.',

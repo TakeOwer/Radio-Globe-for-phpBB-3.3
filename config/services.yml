@@ -3,6 +3,7 @@ parameters:
     tables.radioglobe_places: '%core.table_prefix%radioglobe_places'
     tables.radioglobe_favorites: '%core.table_prefix%radioglobe_favorites'
     tables.radioglobe_comments: '%core.table_prefix%radioglobe_comments'
+    tables.radioglobe_listening: '%core.table_prefix%radioglobe_listening'
 
 services:
     salvocortesiano.radioglobe.station_repository:
@@ -24,6 +25,13 @@ services:
         arguments:
             - '@dbal.conn'
             - '%tables.radioglobe_comments%'
+            - '%tables.radioglobe_stations%'
+
+    salvocortesiano.radioglobe.listen_repository:
+        class: salvocortesiano\radioglobe\repository\listen_repository
+        arguments:
+            - '@dbal.conn'
+            - '%tables.radioglobe_listening%'
             - '%tables.radioglobe_stations%'
 
     salvocortesiano.radioglobe.http_client:
@@ -71,6 +79,7 @@ services:
             - '@salvocortesiano.radioglobe.favorite_repository'
             - '@salvocortesiano.radioglobe.comment_repository'
             - '@salvocortesiano.radioglobe.nowplaying'
+            - '@salvocortesiano.radioglobe.listen_repository'
             - '%core.root_path%'
             - '%core.php_ext%'
 
@@ -84,6 +93,7 @@ services:
             - '@config'
             - '@salvocortesiano.radioglobe.favorite_repository'
             - '@salvocortesiano.radioglobe.comment_repository'
+            - '@salvocortesiano.radioglobe.listen_repository'
             - '%core.root_path%'
         tags:
             - { name: event.listener }
