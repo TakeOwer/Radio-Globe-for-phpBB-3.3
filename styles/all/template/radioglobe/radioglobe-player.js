@@ -153,7 +153,9 @@
 		startedAt: 0,
 		pausedAt: 0,
 		loading: false,
-		retries: 0
+		retries: 0,
+		listenId: saved.listenId || 0,			// stazione di cui si conta il tempo di ascolto
+		listenMs: typeof saved.listenMs === 'number' ? saved.listenMs : 0	// ascolto dall'ultimo avviso
 	};
 
 	var favIds = null;			// Set degli id preferiti (caricato su richiesta)
@@ -175,7 +177,9 @@
 			repeat: state.repeat,
 			volume: state.volume,
 			muted: state.muted,
-			wantPlay: state.wantPlay
+			wantPlay: state.wantPlay,
+			listenId: state.listenId,
+			listenMs: state.listenMs
 		});
 	}
 
@@ -343,6 +347,12 @@
 		render();
 		emit('station', state.station);
 
+		if (changed) {
+			// il promemoria "sta ancora ascoltando" riparte da zero con la nuova stazione
+			state.listenId = state.station.id;
+			state.listenMs = 0;
+		}
+
 		// avviso "sta ascoltando" per gli altri utenti (il forum ignora le ripetizioni)
 		if (changed && cfg.announce && cfg.listenUrl) {
 			request(cfg.listenUrl, { post: { station_id: state.station.id } }).catch(function () {});
@@ -471,6 +481,25 @@
 	}
 	UNLOCK_EVENTS.forEach(function (t) { document.addEventListener(t, unlockAudio, true); });
 
+	/*
+	 * Copertina che ruota (ACP > Player e globo): circa 3 secondi a intervalli regolari,
+	 * solo mentre la radio suona e la pagina e' visibile.
+	 */
+	var SPIN_EVERY = Math.max(0, parseInt(cfg.coverSpin, 10) || 0);
+	var SPIN_CLASS = cfg.coverSpinStyle === 'flat' ? 'rg-spin-flat' : 'rg-spin-flip';
+
+	function spinCover() {
+		if (audio.paused || document.hidden || ui.player.hidden) { return; }
+		ui.coverBtn.classList.remove(SPIN_CLASS);
+		void ui.coverBtn.offsetWidth;	// fa ripartire l'animazione
+		ui.coverBtn.classList.add(SPIN_CLASS);
+	}
+
+	if (SPIN_EVERY) {
+		ui.coverBtn.addEventListener('animationend', function () { ui.coverBtn.classList.remove(SPIN_CLASS); });
+		setInterval(spinCover, Math.max(5, SPIN_EVERY) * 1000);
+	}
+
 	audio.addEventListener('playing', function () {
 		state.loading = false;
 		state.retries = 0;
@@ -520,11 +549,49 @@
 	function startTick() {
 		clearInterval(tickTimer);
 		tickTimer = setInterval(function () {
+			remindListening();
 			if (!state.station) { return; }
 			var t = audio.paused ? (state.pausedAt ? (state.pausedAt - state.startedAt) / 1000 : 0) : (Date.now() - state.startedAt) / 1000;
 			ui.elapsed.textContent = fmtTime(t);
 		}, 1000);
 	}
+
+	/*
+	 * Avviso ripetuto (ACP > Avviso «sta ascoltando» > Ripeti se ascolta ancora): conta solo il
+	 * tempo di ascolto vero della stessa stazione, anche cambiando pagina, e allo scadere chiede
+	 * al forum di mostrare di nuovo l'avviso agli altri. Il cambio di stazione resta in play().
+	 */
+	var LISTEN_REPEAT = cfg.announce && cfg.listenUrl ? Math.max(0, parseInt(cfg.listenRepeat, 10) || 0) : 0;
+	var listenTick = Date.now();
+	var listenSaved = 0;
+
+	function remindListening() {
+		var now = Date.now();
+		// timer rallentati nelle schede in secondo piano: al massimo un minuto per giro
+		var delta = Math.max(0, Math.min(now - listenTick, 65000));
+		listenTick = now;
+
+		if (!LISTEN_REPEAT || !state.station || audio.paused || state.loading) { return; }
+
+		if (state.listenId !== state.station.id) {
+			state.listenId = state.station.id;
+			state.listenMs = 0;
+		}
+
+		state.listenMs += delta;
+
+		if (state.listenMs < LISTEN_REPEAT * 1000) {
+			if (now - listenSaved > 10000) { listenSaved = now; save(); }
+			return;
+		}
+
+		state.listenMs = 0;
+		listenSaved = now;
+		save();
+		request(cfg.listenUrl, { post: { station_id: state.station.id, repeat: 1 } }).catch(function () {});
+	}
+
+	window.addEventListener('pagehide', save);
 
 	/* ------------------------------------------------------------------
 	 * In onda adesso

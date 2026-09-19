@@ -80,6 +80,44 @@ class listen_repository
 	}
 
 	/**
+	 * Ripete l'avviso di chi ascolta ancora la stessa stazione (ACP: "Ripeti se ascolta ancora").
+	 * Il cambio di stazione resta affidato ad add().
+	 *
+	 * @param int $interval secondi minimi dall'ultimo avviso della stessa stazione
+	 * @return bool true se e' stato creato un nuovo evento
+	 */
+	public function repeat($user_id, $station_id, $interval)
+	{
+		$user_id = (int) $user_id;
+		$station_id = (int) $station_id;
+		$now = time();
+
+		$this->db->sql_query('DELETE FROM ' . $this->table . ' WHERE event_time < ' . ($now - self::KEEP));
+
+		$sql = 'SELECT station_id, event_time
+			FROM ' . $this->table . '
+			WHERE user_id = ' . $user_id . '
+			ORDER BY event_id DESC';
+		$result = $this->db->sql_query_limit($sql, 1);
+		$last = $this->db->sql_fetchrow($result);
+		$this->db->sql_freeresult($result);
+
+		// ultimo avviso di un'altra stazione, oppure troppo recente (30 s di tolleranza per il timer del browser)
+		if ($last && ((int) $last['station_id'] !== $station_id || $now - (int) $last['event_time'] < max(30, (int) $interval - 30)))
+		{
+			return false;
+		}
+
+		$this->db->sql_query('INSERT INTO ' . $this->table . ' ' . $this->db->sql_build_array('INSERT', [
+			'user_id'		=> $user_id,
+			'station_id'	=> $station_id,
+			'event_time'	=> $now,
+		]));
+
+		return true;
+	}
+
+	/**
 	 * Numero dell'ultimo evento: punto di partenza per chi apre il forum.
 	 */
 	public function last_id()

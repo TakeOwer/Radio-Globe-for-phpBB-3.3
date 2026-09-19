@@ -127,6 +127,18 @@ body.rg-has-player { padding-bottom: var(--rg-bar-h) !important; }
 .rg-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .rg-cover .rg-tile { font-size: 16px; }
 
+/* Copertina che ruota (ACP > Player e globo): circa 3 secondi */
+.rg-cover.rg-spin-flip { animation: rg-cover-flip 3s ease-in-out; }
+.rg-cover.rg-spin-flat { animation: rg-cover-flat 3s ease-in-out; }
+@keyframes rg-cover-flip {
+	from { transform: perspective(260px) rotateY(0deg); }
+	to { transform: perspective(260px) rotateY(360deg); }
+}
+@keyframes rg-cover-flat {
+	from { transform: rotate(0deg); }
+	to { transform: rotate(360deg); }
+}
+
 .rg-meta { min-width: 0; display: flex; flex-direction: column; justify-content: center; }
 .rg-title-wrap, .rg-sub-wrap { overflow: hidden; white-space: nowrap; }
 /* sfumatura solo quando il testo non ci sta e scorre */
@@ -505,7 +517,7 @@ body.rg-has-player .rg-page { height: calc(100vh - 230px - var(--rg-bar-h)); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.rg-marquee, .rg-is-playing .rg-bar::after, .rg-row-playing .rg-eq rect, .rg-play.rg-resume, .rg-is-playing .rg-live i { animation: none !important; }
+	.rg-marquee, .rg-is-playing .rg-bar::after, .rg-row-playing .rg-eq rect, .rg-play.rg-resume, .rg-is-playing .rg-live i, .rg-cover.rg-spin-flip, .rg-cover.rg-spin-flat { animation: none !important; }
 }
 
 /* ------------------------------------------------------------------

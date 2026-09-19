@@ -1,6 +1,6 @@
 # Radio Globe for phpBB 3.3
 
-![Version](https://img.shields.io/badge/version-1.2.1-105080)
+![Version](https://img.shields.io/badge/version-1.3.0-105080)
 ![phpBB](https://img.shields.io/badge/phpBB-3.3.x-377a33)
 ![PHP](https://img.shields.io/badge/PHP-%3E%3D7.4-377a33)
 ![License](https://img.shields.io/badge/license-GPL--2.0--only-7f7f7f)
@@ -90,6 +90,7 @@ Station data comes from [Radio Browser](https://www.radio-browser.info/), a free
 
 | Version | Changes |
 |---|---|
+| **1.3.0** | The player cover spins for about 3 seconds at a chosen interval (seconds, minutes or hours; 3D or flat, with a "Try" button in the ACP). The "is listening" notice can be repeated every N minutes while the user keeps listening to the same station. |
 | **1.2.1** | Radio Garden style tuning: when the central reticle turns green over a place, its first station starts playing by itself, on desktop and on phones/tablets (iPhone and iPad included). |
 | **1.2.0** | New "is listening" notices: "*User* is listening to: *station* ♪ *title*" at the top right of every page, with the group colour, fade in/out, auto-close after 5 s, click to listen. New ACP options and new permission. |
 | **1.1.2** | Dot colour chosen from the ACP (colour picker, 9 quick colours, hex field, live preview) and four colouring modes: shades, solid, heat map, one colour per country. Atmosphere and "now playing" ring follow the chosen colour. |
@@ -284,6 +285,11 @@ The update downloads the station list from Radio Browser, applies the filters, i
 ---
 
 ## 📜 Changelog
+
+### 1.3.0
+- New: spinning cover. The cover or logo on the left of the player spins for about 3 seconds at regular intervals while a station is playing. ACP: on/off, interval (5 seconds to 24 hours, in seconds, minutes or hours), style (3D like a coin, or flat like a record) and a "Try" button on the live preview.
+- New: repeated "is listening" notice. While a user keeps listening to the same station, the notice is shown again every N minutes (1–1440, default 10). Only actual listening time counts; pauses do not, and the count survives page changes. Changing station still shows the notice straight away, exactly as before.
+- New migration: `add_cover_spin` (settings `radioglobe_cover_spin`, `radioglobe_cover_spin_every`, `radioglobe_cover_spin_style`, `radioglobe_toast_repeat`, `radioglobe_toast_repeat_minutes`).
 
 ### 1.2.1
 - New: when the reticle turns green over a place, the first station of that place starts playing automatically (no click needed), like Radio Garden. It does not restart if you are already listening to a station of that place.
