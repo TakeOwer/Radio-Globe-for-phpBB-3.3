@@ -344,6 +344,17 @@ class ajax
 			return $this->error('RADIOGLOBE_STATION_NOT_FOUND', 404);
 		}
 
+		// promemoria del player: l'utente ascolta ancora la stessa stazione
+		if ($this->request->variable('repeat', 0))
+		{
+			$minutes = !empty($this->config['radioglobe_toast_repeat']) ? max(1, min(1440, (int) $this->config['radioglobe_toast_repeat_minutes'])) : 0;
+
+			return new JsonResponse([
+				'success'	=> true,
+				'announced'	=> $minutes && $this->listens->repeat($this->user->data['user_id'], $station_id, $minutes * 60),
+			]);
+		}
+
 		return new JsonResponse([
 			'success'	=> true,
 			'announced'	=> $this->listens->add($this->user->data['user_id'], $station_id),

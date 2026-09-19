@@ -28,6 +28,9 @@ $lang = array_merge($lang, [
 	'LOG_RADIOGLOBE_SYNC_STARTED'	=> '<strong>Radio Globe:</strong> avviato l’aggiornamento manuale delle stazioni',
 
 	'RADIOGLOBE_SECONDS'			=> 'secondi',
+	'RADIOGLOBE_UNIT_SECONDS'		=> 'secondi',
+	'RADIOGLOBE_UNIT_MINUTES'		=> 'minuti',
+	'RADIOGLOBE_UNIT_HOURS'			=> 'ore',
 	'RADIOGLOBE_NO_CURL'			=> 'L’estensione cURL di PHP non è attiva: il download funziona lo stesso, ma il titolo in onda e le copertine non saranno disponibili.',
 
 	// Impostazioni
@@ -73,6 +76,15 @@ $lang = array_merge($lang, [
 	'RADIOGLOBE_PLAYER_OPACITY_EXPLAIN'	=> 'Opacità dello sfondo della barra del player: 100% è nero pieno, valori più bassi lasciano intravedere la pagina sotto (con una leggera sfocatura). Muovi il cursore e guarda l’anteprima.',
 	'RADIOGLOBE_PREVIEW'			=> 'Anteprima dal vivo',
 	'RADIOGLOBE_PREVIEW_NOTE'		=> 'Anteprima d’esempio: il contenuto della pagina scorre sotto la barra.',
+	'RADIOGLOBE_COVER_SPIN'			=> 'Copertina che ruota',
+	'RADIOGLOBE_COVER_SPIN_EXPLAIN'	=> 'La copertina (o il logo della stazione) a sinistra nel player ruota per circa 3 secondi a intervalli regolari, solo mentre una stazione è in riproduzione.',
+	'RADIOGLOBE_COVER_SPIN_EVERY'	=> 'Ruota ogni',
+	'RADIOGLOBE_COVER_SPIN_EVERY_EXPLAIN'	=> 'Da 5 secondi a 24 ore.',
+	'RADIOGLOBE_COVER_SPIN_STYLE'	=> 'Tipo di rotazione',
+	'RADIOGLOBE_COVER_SPIN_STYLE_EXPLAIN'	=> '«Prova» fa ruotare la copertina dell’anteprima qui sopra.',
+	'RADIOGLOBE_COVER_SPIN_FLIP'	=> '3D, come una moneta',
+	'RADIOGLOBE_COVER_SPIN_FLAT'	=> 'Piatta, come un disco',
+	'RADIOGLOBE_COVER_SPIN_TEST'	=> 'Prova',
 	'RADIOGLOBE_PLAYER_EVERYWHERE'	=> 'Player in tutto il forum',
 	'RADIOGLOBE_PLAYER_EVERYWHERE_EXPLAIN'	=> 'La barra del player resta visibile navigando nel forum e riprende la stazione a ogni cambio pagina. Se disattivato compare solo nella pagina del globo.',
 	'RADIOGLOBE_NAV_LINK'			=> 'Voce “Radio” nel menu',
@@ -107,6 +119,10 @@ $lang = array_merge($lang, [
 	'RADIOGLOBE_TOAST_ENABLED_EXPLAIN'	=> 'Quando un utente fa partire una stazione, in alto a destra su tutte le pagine del forum compare per qualche secondo «Utente sta ascoltando: stazione» con il titolo in onda, se disponibile. Il nome ha il colore del gruppo. Cliccando l’avviso si ascolta la stessa stazione. Lo vedono gli utenti che possono ascoltare la radio; vengono annunciati solo gli utenti dei gruppi con «Ascolto visibile agli altri» (scheda Gruppi autorizzati).',
 	'RADIOGLOBE_TOAST_SECONDS'		=> 'Durata dell’avviso',
 	'RADIOGLOBE_TOAST_SECONDS_EXPLAIN'	=> 'Da 2 a 30 secondi. Con il mouse sopra l’avviso resta aperto.',
+	'RADIOGLOBE_TOAST_REPEAT'		=> 'Ripeti se ascolta ancora',
+	'RADIOGLOBE_TOAST_REPEAT_EXPLAIN'	=> 'Mostra di nuovo l’avviso a intervalli regolari finché l’utente continua ad ascoltare la stessa stazione. Quando cambia stazione l’avviso compare subito, come prima.',
+	'RADIOGLOBE_TOAST_REPEAT_MINUTES'	=> 'Ripeti ogni',
+	'RADIOGLOBE_TOAST_REPEAT_MINUTES_EXPLAIN'	=> 'Da 1 a 1440 minuti (24 ore). Conta solo il tempo di ascolto vero: le pause non contano.',
 
 	'RADIOGLOBE_SET_COMMENTS'		=> 'Commenti alle stazioni',
 	'RADIOGLOBE_COMMENTS_ENABLED'	=> 'Commenti attivi',

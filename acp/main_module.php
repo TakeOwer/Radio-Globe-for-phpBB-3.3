@@ -193,6 +193,17 @@ class main_module
 			$config->set('radioglobe_autorotate', $request->variable('radioglobe_autorotate', 1));
 			$config->set('radioglobe_toast_enabled', $request->variable('radioglobe_toast_enabled', 1));
 			$config->set('radioglobe_toast_seconds', max(2, min(30, $request->variable('radioglobe_toast_seconds', 5))));
+			$config->set('radioglobe_toast_repeat', $request->variable('radioglobe_toast_repeat', 1));
+			$config->set('radioglobe_toast_repeat_minutes', max(1, min(1440, $request->variable('radioglobe_toast_repeat_minutes', 10))));
+
+			// copertina che ruota: valore + unita' (secondi, minuti, ore), salvato in secondi (da 5 s a 24 ore)
+			$spin_units = ['s' => 1, 'm' => 60, 'h' => 3600];
+			$spin_unit = $request->variable('radioglobe_cover_spin_unit', 's');
+			$spin_unit = isset($spin_units[$spin_unit]) ? $spin_units[$spin_unit] : 1;
+			$spin_style = $request->variable('radioglobe_cover_spin_style', 'flip');
+			$config->set('radioglobe_cover_spin', $request->variable('radioglobe_cover_spin', 1));
+			$config->set('radioglobe_cover_spin_every', max(5, min(86400, $request->variable('radioglobe_cover_spin_value', 10) * $spin_unit)));
+			$config->set('radioglobe_cover_spin_style', in_array($spin_style, ['flip', 'flat'], true) ? $spin_style : 'flip');
 
 			$config->set('radioglobe_comments_enabled', $request->variable('radioglobe_comments_enabled', 1));
 			$config->set('radioglobe_comment_maxlen', max(50, min(5000, $request->variable('radioglobe_comment_maxlen', 1000))));
@@ -221,6 +232,11 @@ class main_module
 			]);
 		}
 
+		// intervallo della copertina mostrato nell'unita' piu' comoda
+		$spin_every = isset($config['radioglobe_cover_spin_every']) ? max(5, (int) $config['radioglobe_cover_spin_every']) : 10;
+		$spin_unit = ($spin_every % 3600 === 0) ? 'h' : (($spin_every % 60 === 0) ? 'm' : 's');
+		$spin_value = $spin_every / ($spin_unit === 'h' ? 3600 : ($spin_unit === 'm' ? 60 : 1));
+
 		$template->assign_vars([
 			'U_ACTION'						=> $this->u_action,
 			'RADIOGLOBE_API_SERVER'			=> $config['radioglobe_api_server'],
@@ -246,6 +262,14 @@ class main_module
 			'S_RADIOGLOBE_AUTOROTATE'		=> (bool) $config['radioglobe_autorotate'],
 			'S_RADIOGLOBE_TOAST_ENABLED'	=> !isset($config['radioglobe_toast_enabled']) || (bool) $config['radioglobe_toast_enabled'],
 			'RADIOGLOBE_TOAST_SECONDS'		=> isset($config['radioglobe_toast_seconds']) ? (int) $config['radioglobe_toast_seconds'] : 5,
+			'S_RADIOGLOBE_TOAST_REPEAT'		=> !isset($config['radioglobe_toast_repeat']) || (bool) $config['radioglobe_toast_repeat'],
+			'RADIOGLOBE_TOAST_REPEAT_MINUTES'	=> isset($config['radioglobe_toast_repeat_minutes']) ? (int) $config['radioglobe_toast_repeat_minutes'] : 10,
+			'S_RADIOGLOBE_COVER_SPIN'		=> !isset($config['radioglobe_cover_spin']) || (bool) $config['radioglobe_cover_spin'],
+			'RADIOGLOBE_COVER_SPIN_VALUE'	=> (int) $spin_value,
+			'S_RADIOGLOBE_SPIN_UNIT_S'		=> $spin_unit === 's',
+			'S_RADIOGLOBE_SPIN_UNIT_M'		=> $spin_unit === 'm',
+			'S_RADIOGLOBE_SPIN_UNIT_H'		=> $spin_unit === 'h',
+			'S_RADIOGLOBE_SPIN_FLAT'		=> isset($config['radioglobe_cover_spin_style']) && $config['radioglobe_cover_spin_style'] === 'flat',
 			'S_RADIOGLOBE_COMMENTS_ENABLED'	=> (bool) $config['radioglobe_comments_enabled'],
 			'RADIOGLOBE_COMMENT_MAXLEN'		=> (int) $config['radioglobe_comment_maxlen'],
 			'RADIOGLOBE_COMMENTS_PER_PAGE'	=> (int) $config['radioglobe_comments_per_page'],

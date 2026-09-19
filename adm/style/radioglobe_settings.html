@@ -159,6 +159,34 @@
 			</dd>
 		</dl>
 		<dl>
+			<dt><label for="radioglobe_cover_spin">{L_RADIOGLOBE_COVER_SPIN}:</label><br /><span>{L_RADIOGLOBE_COVER_SPIN_EXPLAIN}</span></dt>
+			<dd>
+				<label><input type="radio" class="radio" id="radioglobe_cover_spin" name="radioglobe_cover_spin" value="1"<!-- IF S_RADIOGLOBE_COVER_SPIN --> checked="checked"<!-- ENDIF --> /> {L_YES}</label>
+				<label><input type="radio" class="radio" name="radioglobe_cover_spin" value="0"<!-- IF not S_RADIOGLOBE_COVER_SPIN --> checked="checked"<!-- ENDIF --> /> {L_NO}</label>
+			</dd>
+		</dl>
+		<dl>
+			<dt><label for="radioglobe_cover_spin_value">{L_RADIOGLOBE_COVER_SPIN_EVERY}:</label><br /><span>{L_RADIOGLOBE_COVER_SPIN_EVERY_EXPLAIN}</span></dt>
+			<dd>
+				<input type="number" class="inputbox autowidth" id="radioglobe_cover_spin_value" name="radioglobe_cover_spin_value" value="{RADIOGLOBE_COVER_SPIN_VALUE}" min="1" max="86400" step="1" />
+				<select name="radioglobe_cover_spin_unit" id="radioglobe_cover_spin_unit">
+					<option value="s"<!-- IF S_RADIOGLOBE_SPIN_UNIT_S --> selected="selected"<!-- ENDIF -->>{L_RADIOGLOBE_UNIT_SECONDS}</option>
+					<option value="m"<!-- IF S_RADIOGLOBE_SPIN_UNIT_M --> selected="selected"<!-- ENDIF -->>{L_RADIOGLOBE_UNIT_MINUTES}</option>
+					<option value="h"<!-- IF S_RADIOGLOBE_SPIN_UNIT_H --> selected="selected"<!-- ENDIF -->>{L_RADIOGLOBE_UNIT_HOURS}</option>
+				</select>
+			</dd>
+		</dl>
+		<dl>
+			<dt><label for="radioglobe_cover_spin_style">{L_RADIOGLOBE_COVER_SPIN_STYLE}:</label><br /><span>{L_RADIOGLOBE_COVER_SPIN_STYLE_EXPLAIN}</span></dt>
+			<dd>
+				<select name="radioglobe_cover_spin_style" id="radioglobe_cover_spin_style">
+					<option value="flip"<!-- IF not S_RADIOGLOBE_SPIN_FLAT --> selected="selected"<!-- ENDIF -->>{L_RADIOGLOBE_COVER_SPIN_FLIP}</option>
+					<option value="flat"<!-- IF S_RADIOGLOBE_SPIN_FLAT --> selected="selected"<!-- ENDIF -->>{L_RADIOGLOBE_COVER_SPIN_FLAT}</option>
+				</select>
+				<button type="button" class="button2" id="rgs-test">{L_RADIOGLOBE_COVER_SPIN_TEST}</button>
+			</dd>
+		</dl>
+		<dl>
 			<dt><label for="radioglobe_nav_link">{L_RADIOGLOBE_NAV_LINK}:</label></dt>
 			<dd>
 				<label><input type="radio" class="radio" id="radioglobe_nav_link" name="radioglobe_nav_link" value="1"<!-- IF S_RADIOGLOBE_NAV_LINK --> checked="checked"<!-- ENDIF --> /> {L_YES}</label>
@@ -258,6 +286,17 @@
 			<dt><label for="radioglobe_toast_seconds">{L_RADIOGLOBE_TOAST_SECONDS}:</label><br /><span>{L_RADIOGLOBE_TOAST_SECONDS_EXPLAIN}</span></dt>
 			<dd><input type="number" class="inputbox autowidth" id="radioglobe_toast_seconds" name="radioglobe_toast_seconds" value="{RADIOGLOBE_TOAST_SECONDS}" min="2" max="30" step="1" /> {L_RADIOGLOBE_SECONDS}</dd>
 		</dl>
+		<dl>
+			<dt><label for="radioglobe_toast_repeat">{L_RADIOGLOBE_TOAST_REPEAT}:</label><br /><span>{L_RADIOGLOBE_TOAST_REPEAT_EXPLAIN}</span></dt>
+			<dd>
+				<label><input type="radio" class="radio" id="radioglobe_toast_repeat" name="radioglobe_toast_repeat" value="1"<!-- IF S_RADIOGLOBE_TOAST_REPEAT --> checked="checked"<!-- ENDIF --> /> {L_YES}</label>
+				<label><input type="radio" class="radio" name="radioglobe_toast_repeat" value="0"<!-- IF not S_RADIOGLOBE_TOAST_REPEAT --> checked="checked"<!-- ENDIF --> /> {L_NO}</label>
+			</dd>
+		</dl>
+		<dl>
+			<dt><label for="radioglobe_toast_repeat_minutes">{L_RADIOGLOBE_TOAST_REPEAT_MINUTES}:</label><br /><span>{L_RADIOGLOBE_TOAST_REPEAT_MINUTES_EXPLAIN}</span></dt>
+			<dd><input type="number" class="inputbox autowidth" id="radioglobe_toast_repeat_minutes" name="radioglobe_toast_repeat_minutes" value="{RADIOGLOBE_TOAST_REPEAT_MINUTES}" min="1" max="1440" step="1" /> {L_RADIOGLOBE_UNIT_MINUTES}</dd>
+		</dl>
 	</fieldset>
 
 	<fieldset>
@@ -339,6 +378,25 @@
 	input.addEventListener('input', apply);
 	input.addEventListener('change', apply);
 	apply();
+})();
+</script>
+<script>
+(function () {
+	// copertina dell'anteprima: gira con lo stile scelto (pulsante "Prova" o cambio di stile)
+	var btn = document.getElementById('rgs-test');
+	var style = document.getElementById('radioglobe_cover_spin_style');
+	var cover = document.querySelector('#rgp-player .rg-cover');
+	if (!btn || !style || !cover) { return; }
+
+	function spin() {
+		cover.classList.remove('rg-spin-flip', 'rg-spin-flat');
+		void cover.offsetWidth;
+		cover.classList.add(style.value === 'flat' ? 'rg-spin-flat' : 'rg-spin-flip');
+	}
+
+	cover.addEventListener('animationend', function () { cover.classList.remove('rg-spin-flip', 'rg-spin-flat'); });
+	btn.addEventListener('click', spin);
+	style.addEventListener('change', spin);
 })();
 </script>
 <script>
