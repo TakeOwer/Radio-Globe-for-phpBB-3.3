@@ -108,33 +108,18 @@ class station_sync
 	/** Chiave di confronto delle regioni: "Baden-Württemberg" e "baden württemberg" coincidono. */
 	public static function region_key($state)
 	{
-		$key = utf8_strtolower(trim((string) $state));
+		// minuscole senza accenti: "Bahía" e "Bahia", "Québec" e "Quebec" sono la stessa regione
+		$key = city_index::fold(trim((string) $state));
 
-		// senza accenti: "Bahía" e "Bahia", "Québec" e "Quebec" sono la stessa regione
-		if (class_exists('Normalizer'))
-		{
-			$decomposed = \Normalizer::normalize($key, \Normalizer::FORM_D);
-			if ($decomposed !== false)
-			{
-				$key = preg_replace('#\p{Mn}+#u', '', $decomposed);
-			}
-		}
-		else
-		{
-			$key = strtr($key, [
-				'à' => 'a', 'á' => 'a', 'â' => 'a', 'ã' => 'a', 'ä' => 'a', 'å' => 'a', 'ç' => 'c', 'è' => 'e', 'é' => 'e',
-				'ê' => 'e', 'ë' => 'e', 'ì' => 'i', 'í' => 'i', 'î' => 'i', 'ï' => 'i', 'ñ' => 'n', 'ò' => 'o', 'ó' => 'o',
-				'ô' => 'o', 'õ' => 'o', 'ö' => 'o', 'ù' => 'u', 'ú' => 'u', 'û' => 'u', 'ü' => 'u', 'ý' => 'y', 'ÿ' => 'y',
-			]);
-		}
-
-		$key = preg_replace('#[^\p{L}\p{N}]+#u', '', $key);
-
-		return (string) $key;
+		return (string) preg_replace('#[^\p{L}\p{N}]+#u', '', $key);
 	}
 
 	/** Indice caricato una volta per richiesta: [ 'cc|regione' => [[lat, lng], ...], 'cc' => [...] ] */
 	protected $geo_index = null;
+	/** Come e' scritta ogni regione nelle stazioni con coordinate: [ 'cc|regione' => ['Sicilia' => 12, ...] ] */
+	protected $region_names = [];
+	/** Citta' GeoNames per le stazioni senza coordinate. */
+	protected $cities = null;
 
 	protected function load_geo_index()
 	{
@@ -150,9 +135,10 @@ class station_sync
 		{
 			while (($line = fgets($handle)) !== false)
 			{
-				$parts = explode('|', rtrim($line, "\r\n"));
+				// "cc|regione|lat|lng|Regione come scritta" (il quinto campo manca nei file delle versioni precedenti)
+				$parts = explode('|', rtrim($line, "\r\n"), 5);
 
-				if (count($parts) !== 4)
+				if (count($parts) < 4)
 				{
 					continue;
 				}
@@ -162,7 +148,13 @@ class station_sync
 
 				if ($parts[1] !== '')
 				{
-					$index[$parts[0] . '|' . $parts[1]][] = $point;
+					$region = $parts[0] . '|' . $parts[1];
+					$index[$region][] = $point;
+
+					if (isset($parts[4]) && ($name = trim($parts[4])) !== '')
+					{
+						$this->region_names[$region][$name] = isset($this->region_names[$region][$name]) ? $this->region_names[$region][$name] + 1 : 1;
+					}
 				}
 			}
 			fclose($handle);
@@ -255,13 +247,22 @@ class station_sync
 	}
 
 	/**
-	 * Posizione di una stazione senza coordinate: la regione se ci sono stazioni con coordinate in
-	 * quella regione, altrimenti il paese, altrimenti il centro geografico del paese.
+	 * Posizione di una stazione senza coordinate, dalla piu' precisa:
+	 *  1. la regione indicata, se ci sono stazioni con coordinate in quella regione (come prima);
+	 *  2. la citta' indicata nel campo regione ("Tucson AZ", "Krakow");
+	 *  3. la citta' nel nome o nelle etichette ("NRJ Lyon", "Radio Bahia Blanca");
+	 *  4. la regione nel nome o nelle etichette ("Antenne Bayern", "Radio Sicilia");
+	 *  5. il paese, altrimenti il centro geografico del paese.
+	 * Le stazioni messe su una citta' finiscono nello stesso puntino delle stazioni con coordinate
+	 * di quella citta'. Se il campo regione e' vuoto, lo si riempie con la citta' o la regione trovata.
 	 *
-	 * @return array|null ['lat', 'lng', 'place_key']
+	 * @return array|null ['lat', 'lng', 'place_key', 'state']
 	 */
-	protected function locate_without_coordinates($cc, $state)
+	protected function locate_without_coordinates(array $row, $grid)
 	{
+		$cc = $row['countrycode'];
+		$state = $row['state'];
+
 		if ($cc === '' || $cc === 'XX')
 		{
 			return null;
@@ -274,7 +275,43 @@ class station_sync
 		{
 			list($lat, $lng) = self::median_point($index[$cc . '|' . $region]);
 
-			return ['lat' => $lat, 'lng' => $lng, 'place_key' => $cc . '_R_' . substr(md5($region), 0, 10)];
+			return ['lat' => $lat, 'lng' => $lng, 'place_key' => $cc . '_R_' . substr(md5($region), 0, 10), 'state' => $state];
+		}
+
+		if ($this->cities === null)
+		{
+			// elenco scaricato da GeoNames dall'ACP (scheda Citta'), se c'e'
+			$this->cities = new city_index(__DIR__ . '/data/', $this->store_dir() . 'cities.tsv');
+		}
+
+		$texts = array_merge([$row['station_name']], explode(',', $row['tags']));
+		$hint = city_index::us_state_hint($cc, [$state, $row['station_name']]);
+
+		$city = ($state !== '') ? $this->cities->find($cc, [$state], false, $hint) : null;
+
+		if ($city === null)
+		{
+			$city = $this->cities->find($cc, $texts, true, $hint);
+		}
+
+		if ($city !== null)
+		{
+			// stessa chiave dei puntini delle stazioni con coordinate: la citta' si unisce a loro
+			return [
+				'lat'		=> $city['lat'],
+				'lng'		=> $city['lng'],
+				'place_key'	=> $cc . '_' . (int) floor($city['lat'] / $grid) . '_' . (int) floor($city['lng'] / $grid),
+				'state'		=> ($state !== '') ? $state : $city['name'],
+			];
+		}
+
+		$region = $this->region_from_text($cc, $texts);
+
+		if ($region !== '')
+		{
+			list($lat, $lng) = self::median_point($index[$cc . '|' . $region]);
+
+			return ['lat' => $lat, 'lng' => $lng, 'place_key' => $cc . '_R_' . substr(md5($region), 0, 10), 'state' => ($state !== '') ? $state : $this->region_name($cc, $region)];
 		}
 
 		if (!empty($index[$cc]))
@@ -290,7 +327,59 @@ class station_sync
 			return null;
 		}
 
-		return ['lat' => $lat, 'lng' => $lng, 'place_key' => $cc . '_C'];
+		return ['lat' => $lat, 'lng' => $lng, 'place_key' => $cc . '_C', 'state' => $state];
+	}
+
+	/**
+	 * Regione nota (dalle stazioni con coordinate) citata nel nome o nelle etichette: "Antenne Bayern",
+	 * "Radio Sicilia". Vince la piu' lunga; parole generiche e nomi di paesi non valgono.
+	 *
+	 * @return string chiave della regione, '' se nessuna
+	 */
+	protected function region_from_text($cc, array $texts)
+	{
+		$index = $this->load_geo_index();
+		$best = '';
+
+		foreach ($texts as $text)
+		{
+			$tokens = city_index::tokens($text);
+
+			for ($n = 3; $n >= 1; $n--)
+			{
+				for ($i = 0, $last = count($tokens) - $n; $i <= $last; $i++)
+				{
+					if ($n === 1 && $this->cities->is_generic($tokens[$i]))
+					{
+						continue;
+					}
+
+					$key = implode('', array_slice($tokens, $i, $n));
+
+					if (strlen($key) > strlen($best) && strlen($key) >= 4 && !empty($index[$cc . '|' . $key])
+						&& !$this->cities->is_generic($key) && !$this->cities->is_country_word($key))
+					{
+						$best = $key;
+					}
+				}
+			}
+		}
+
+		return $best;
+	}
+
+	/** La grafia piu' usata di una regione nelle stazioni con coordinate ("Sicilia", "Bayern"). */
+	protected function region_name($cc, $region)
+	{
+		if (empty($this->region_names[$cc . '|' . $region]))
+		{
+			return '';
+		}
+
+		$names = $this->region_names[$cc . '|' . $region];
+		arsort($names);
+
+		return (string) key($names);
 	}
 
 	public function get_state()
@@ -573,7 +662,8 @@ class station_sync
 				if (empty($row['_needs_geo']) && $row['countrycode'] !== '')
 				{
 					$geo_lines .= $row['countrycode'] . '|' . self::region_key($row['state']) . '|'
-						. ($row['geo_lat'] / station_repository::GEO_SCALE) . '|' . ($row['geo_long'] / station_repository::GEO_SCALE) . "\n";
+						. ($row['geo_lat'] / station_repository::GEO_SCALE) . '|' . ($row['geo_long'] / station_repository::GEO_SCALE)
+						. '|' . str_replace(['|', "\n", "\r"], ' ', $row['state']) . "\n";
 				}
 			}
 		}
@@ -721,8 +811,9 @@ class station_sync
 
 	protected function clean($text, $max)
 	{
-		// nomi e tag possono arrivare con entita' HTML (&#1050; &amp; ...)
-		$text = html_entity_decode((string) $text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+		// UTF-8 valido e leggibile ("DinÃ¡mica" -> "Dinámica"), poi le entita' HTML (&#1050; &amp; ...)
+		$text = utf8_text::fix($text);
+		$text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 		$text = self::strip_4byte($text);
 		$text = trim(preg_replace('#\s+#u', ' ', $text));
 		$text = utf8_normalize_nfc($text);
@@ -835,6 +926,7 @@ class station_sync
 	{
 		$existing = $this->stations->get_hashes(array_keys($rows));
 		$now = (int) $state['started'];
+		$grid = max(5, (int) $this->config['radioglobe_cluster_grid']) / 100;
 
 		$insert = [];
 		$touch = [];
@@ -846,7 +938,7 @@ class station_sync
 			// stazione senza coordinate: la si mette sulla sua regione o sul suo paese
 			if (!empty($row['_needs_geo']))
 			{
-				$spot = $this->locate_without_coordinates($row['countrycode'], $row['state']);
+				$spot = $this->locate_without_coordinates($row, $grid);
 
 				if ($spot === null)
 				{
@@ -857,6 +949,7 @@ class station_sync
 				$row['geo_lat'] = (int) round($spot['lat'] * station_repository::GEO_SCALE);
 				$row['geo_long'] = (int) round($spot['lng'] * station_repository::GEO_SCALE);
 				$row['place_key'] = $spot['place_key'];
+				$row['state'] = $this->clean($spot['state'], 100);
 			}
 			unset($row['_needs_geo']);
 

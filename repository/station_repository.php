@@ -349,6 +349,55 @@ class station_repository
 	}
 
 	/**
+	 * Toglie una stazione dall'elenco del forum: non viene cancellata, viene disattivata, cosi'
+	 * commenti e preferiti restano e il prossimo aggiornamento la rimette al suo posto se Radio
+	 * Browser la elenca ancora. Il luogo perde una stazione e sparisce dal globo se resta vuoto.
+	 *
+	 * @return array|null la stazione tolta, con 'place_count' (quante ne restano nel suo luogo)
+	 *                    e 'place_gone' (true se il puntino e' sparito); null se non c'era
+	 */
+	public function deactivate($station_id)
+	{
+		$station = $this->get_station($station_id);
+
+		if (!$station)
+		{
+			return null;
+		}
+
+		$this->db->sql_query('UPDATE ' . $this->stations_table . '
+			SET station_active = 0
+			WHERE station_id = ' . (int) $station_id);
+
+		$station['place_count'] = 0;
+		$station['place_gone'] = false;
+		$key = (string) $station['place_key'];
+
+		if ($key !== '')
+		{
+			$escaped = "'" . $this->db->sql_escape($key) . "'";
+
+			$this->db->sql_query('UPDATE ' . $this->places_table . '
+				SET station_count = station_count - 1
+				WHERE place_key = ' . $escaped . ' AND station_count > 0');
+
+			$result = $this->db->sql_query('SELECT station_count FROM ' . $this->places_table . '
+				WHERE place_key = ' . $escaped);
+			$station['place_count'] = (int) $this->db->sql_fetchfield('station_count');
+			$this->db->sql_freeresult($result);
+
+			if ($station['place_count'] < 1)
+			{
+				$this->db->sql_query('DELETE FROM ' . $this->places_table . '
+					WHERE place_key = ' . $escaped);
+				$station['place_gone'] = true;
+			}
+		}
+
+		return $station;
+	}
+
+	/**
 	 * Le stazioni non piu' presenti nell'ultimo aggiornamento vengono
 	 * disattivate; quelle senza preferiti ne' commenti, e disattivate da
 	 * oltre 30 giorni, vengono eliminate.

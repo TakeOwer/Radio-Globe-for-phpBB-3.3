@@ -48,6 +48,83 @@ class http_client
 		return 'Mozilla/5.0 (compatible; ' . self::USER_AGENT . '; +' . generate_board_url() . ')';
 	}
 
+	/**
+	 * Scarica un pezzo di un file (intestazione Range): serve a scaricare file grandi a passi brevi.
+	 *
+	 * @return array ['status' => int (206 = pezzo, 200 = file intero), 'body' => string, 'error' => string,
+	 *                'total' => int dimensione del file intero (0 se sconosciuta), 'modified' => string Last-Modified]
+	 */
+	public function get_range($url, $from, $to, $timeout = 60)
+	{
+		$headers = ['Range: bytes=' . (int) $from . '-' . (int) $to];
+		$total = 0;
+		$modified = '';
+
+		if (function_exists('curl_init'))
+		{
+			$ch = curl_init($url);
+
+			curl_setopt_array($ch, [
+				CURLOPT_RETURNTRANSFER	=> true,
+				CURLOPT_FOLLOWLOCATION	=> true,
+				CURLOPT_MAXREDIRS		=> 3,
+				CURLOPT_CONNECTTIMEOUT	=> 10,
+				CURLOPT_TIMEOUT			=> (int) $timeout,
+				CURLOPT_USERAGENT		=> $this->user_agent(),
+				CURLOPT_HTTPHEADER		=> $headers,
+				CURLOPT_SSL_VERIFYPEER	=> true,
+				CURLOPT_HEADERFUNCTION	=> function ($ch, $line) use (&$total, &$modified) {
+					if (preg_match('#^Content-Range:\s*bytes\s+\d+-\d+/(\d+)#i', $line, $m))
+					{
+						$total = (int) $m[1];
+					}
+					else if (preg_match('#^Last-Modified:\s*(.+?)\s*$#i', $line, $m))
+					{
+						$modified = $m[1];
+					}
+
+					return strlen($line);
+				},
+			]);
+
+			$body = curl_exec($ch);
+			$status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+			$error = ($body === false) ? curl_error($ch) : '';
+			curl_close($ch);
+			$body = ($body === false) ? '' : (string) $body;
+		}
+		else
+		{
+			$result = $this->get_stream($url, $headers, $timeout);
+			$status = $result['status'];
+			$body = $result['body'];
+			$error = $result['error'];
+
+			foreach (isset($this->last_headers) ? $this->last_headers : [] as $line)
+			{
+				if (preg_match('#^Content-Range:\s*bytes\s+\d+-\d+/(\d+)#i', $line, $m))
+				{
+					$total = (int) $m[1];
+				}
+				else if (preg_match('#^Last-Modified:\s*(.+?)\s*$#i', $line, $m))
+				{
+					$modified = $m[1];
+				}
+			}
+		}
+
+		if ($status === 200)
+		{
+			// il server ignora Range e manda tutto il file
+			$total = strlen($body);
+		}
+
+		return ['status' => $status, 'body' => $body, 'error' => $error, 'total' => $total, 'modified' => $modified];
+	}
+
+	/** Intestazioni dell'ultima risposta ricevuta con gli stream di PHP (senza cURL). */
+	protected $last_headers = [];
+
 	protected function get_curl($url, array $headers, $timeout)
 	{
 		$ch = curl_init($url);
@@ -93,6 +170,8 @@ class http_client
 
 		$body = @file_get_contents($url, false, $context);
 		$status = 0;
+
+		$this->last_headers = !empty($http_response_header) ? $http_response_header : [];
 
 		if (!empty($http_response_header))
 		{
@@ -209,10 +288,8 @@ class http_client
 
 		$title = rtrim($title, "\0");
 
-		if (function_exists('mb_check_encoding') && !mb_check_encoding($title, 'UTF-8'))
-		{
-			$title = mb_convert_encoding($title, 'UTF-8', 'ISO-8859-1');
-		}
+		// UTF-8 valido anche da server in Windows-1252 / ISO-8859-1 o con doppia codifica, anche senza mbstring
+		$title = utf8_text::fix($title);
 
 		// alcuni server (Shoutcast/Icecast) mandano i caratteri non latini
 		// come entita' HTML: "&#1050;&#1077;..." va riportato a "Ке..."

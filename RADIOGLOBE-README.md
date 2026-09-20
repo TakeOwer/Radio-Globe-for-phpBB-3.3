@@ -1,6 +1,6 @@
 # Radio Globe for phpBB 3.3
 
-![Version](https://img.shields.io/badge/version-1.3.0-105080)
+![Version](https://img.shields.io/badge/version-1.10.1-105080)
 ![phpBB](https://img.shields.io/badge/phpBB-3.3.x-377a33)
 ![PHP](https://img.shields.io/badge/PHP-%3E%3D7.4-377a33)
 ![License](https://img.shields.io/badge/license-GPL--2.0--only-7f7f7f)
@@ -44,7 +44,7 @@ Station data comes from [Radio Browser](https://www.radio-browser.info/), a free
   - `45.4642, 9.19` · `45.4642 9.19` · `45,4642 9,19` · `-33.86 151.21`
   - `45.46N 9.19E`
   - `45°27'51"N 9°11'24"E` · `N 45° 27.85' E 9° 11.4'`
-- **Stations without coordinates**: about four in five Radio Browser stations have no coordinates. Radio Globe can place them in their region (where the stations with coordinates of the same region are) or, when the region is unknown, in the centre of their country. They are shown as "*Region* (region)" and "*Country* (whole country)". With this option a typical import grows from about 9,000 to more than 33,000 stations on the globe.
+- **Stations without coordinates**: about four in five Radio Browser stations have no coordinates. Radio Globe can place them in their region (where the stations with coordinates of the same region are), in the city named in their region field, name or tags ("NRJ Lyon", "Radio Bahía Blanca", "Tucson AZ": about 34,000 cities from GeoNames, joining the dot of that city), in the region named in their name ("Antenne Bayern") or, as a last resort, in the centre of their country. They are shown as "*Region* (region)" and "*Country* (whole country)". With this option a typical import grows from about 9,000 to more than 33,000 stations on the globe.
 
 ### The player
 - Player bar fixed at the bottom of the page with station logo or album cover, now-playing title, play/pause, previous/next, shuffle and repeat (automatic reconnection when a stream drops).
@@ -90,6 +90,19 @@ Station data comes from [Radio Browser](https://www.radio-browser.info/), a free
 
 | Version | Changes |
 |---|---|
+| **1.10.1** | Fix: with more than one board tab open, two players could play at the same time and pause only stopped the one on screen. Pause and close now apply to every tab, and resuming when changing page can be switched off in the ACP. |
+| **1.10.0** | Red bin next to every station: administrators and moderators can take dead, silent or wrong stations out of the board list. The next station update from the ACP brings them back. |
+| **1.9.1** | Desktops: "Near me" now says clearly when the position does not come from GPS (it is the provider's city) and offers "Not my city", which explains how to set the right one in three steps. |
+| **1.9.0** | "Near me" is much more accurate: high accuracy is requested and the best reading is used, the accuracy is shown, and a location chosen by hand can be saved ("Use as my location"), which also works on desktops without GPS. |
+| **1.8.3** | Fix: on phones the globe could be drawn off to one side after a resize; it now always fills its area and the size is re-checked after every change. |
+| **1.8.2** | Check-up report: files without an extension (LICENSE) are no longer reported as changed after an FTP upload in text mode. |
+| **1.8.1** | "Near me" now also starts the nearest station, like the reticle does. |
+| **1.8.0** | "Near me" button: the globe flies to your city and lists the nearest stations (automatic on opening when the browser already has the permission). The search box shows the coordinates of the place under the reticle. Fix: on phones, pinching the globe no longer zooms the page (only half the globe was visible afterwards). |
+| **1.7.0** | New ACP tab "Check-up report": a complete check of the extension (environment, files, downloaded files folder, database, addresses, stations, cities, connectivity, real tests) with a progress bar, a coloured summary and "Copy the report". |
+| **1.6.0** | The city list warns when it is old (on the Cities tab and the ACP main page, after 6 months by default) and can update itself through the phpBB scheduled tasks. |
+| **1.5.0** | New ACP tab "Cities (GeoNames)": downloads the updated city list from GeoNames with a progress bar, checks it and uses it instead of the included one; one click goes back to the included list. |
+| **1.4.1** | Text fixes: user names with & or ' in the "is listening" notices, song titles sent in Windows-1252 / ISO-8859-1 or double-encoded, broken titles hidden, station names escaped in the ACP comments page. |
+| **1.4.0** | Stations without coordinates are placed much more precisely: the city is recognised in the region field, name or tags (about 34,000 cities from GeoNames), so about 3,200 more stations leave the crowded "whole country" dots and join the dot of their city or region. |
 | **1.3.0** | The player cover spins for about 3 seconds at a chosen interval (seconds, minutes or hours; 3D or flat, with a "Try" button in the ACP). The "is listening" notice can be repeated every N minutes while the user keeps listening to the same station. |
 | **1.2.1** | Radio Garden style tuning: when the central reticle turns green over a place, its first station starts playing by itself, on desktop and on phones/tablets (iPhone and iPad included). |
 | **1.2.0** | New "is listening" notices: "*User* is listening to: *station* ♪ *title*" at the top right of every page, with the group colour, fade in/out, auto-close after 5 s, click to listen. New ACP options and new permission. |
@@ -286,6 +299,96 @@ The update downloads the station list from Radio Browser, applies the filters, i
 
 ## 📜 Changelog
 
+### 1.10.1
+- Fix: the player resumes the station by itself when the page changes, but it did not tell the other tabs, so two tabs could play the same stream at the same time; and pause only stopped the tab on screen, so the sound kept coming from the other one with no way to stop it. Now every start is announced to the other tabs (which stop), and pause and close apply to all of them.
+- Pause and close also stop any other audio element of the page, as a safety net.
+- New ACP option **"Resume listening when changing page"** (on by default, Settings > Player and globe): with "No" the player stays paused after a page change and only starts when play is pressed.
+- New migration `add_player_resume`.
+
+### 1.10.0
+- New: a **red bin** appears next to every station in the lists for users with the new permission "Can remove stations from the radio list" (administrators and moderators by default). It asks for confirmation and takes the station out of the board list for everyone.
+- The station is not deleted, it is deactivated: its comments and favourites are kept, and the next station update from the ACP brings it back if Radio Browser still lists it (exactly like stations that disappear on their own).
+- The place loses one station straight away: the counter above the list and the dot on the globe are updated, and the dot disappears when the place is left empty. The station counters of the board are updated too.
+- If the removed station is the one playing, the player moves on to the next one in the queue.
+- Every removal is written in the phpBB admin log.
+- New migration `add_station_remove` (permission `m_radioglobe_stations`). New route `/radio/data/station/remove`.
+
+### 1.9.1
+- Desktops have no GPS, so the browser works the position out from the internet address and returns the provider's city (often hundreds of kilometres away). Now anything less accurate than 1.5 km is marked as "not a GPS reading" with an orange notice, instead of being presented as the user's city.
+- New button **"Not my city"** next to the results: it clears the search, puts the cursor in the box and explains the three steps (type the city, click one of its stations, press the pin) to set the right position once and for all.
+- Clicking a station in the search results now opens its place, where the pin "Use this place as my location" is. Before, the place page (and the pin) could only be reached from the globe.
+- The pin is no longer offered on the first search result: searching "Roma" could return a station whose name merely contains those letters, hundreds of kilometres away, and saving it would have set the wrong position.
+
+### 1.9.0
+- "Near me" now asks the browser for high accuracy and keeps listening for a few seconds: the first answer is almost always the rough one from the network, the GPS one arrives later. The best reading is used (waiting at most 5 more seconds after the first answer, 12 seconds in total).
+- The accuracy of the position is shown above the list ("accurate to about 18 m"). When it is worse than 25 km the notice turns orange and explains that such a rough position almost always comes from the internet address and can point at the provider's city, with instructions to correct it.
+- New: **Use as my location**. From the "Near me" results, or with the pin button next to the play button of any place, the position can be saved in the browser. "Near me" then always uses it, without asking for the location permission: this is the only reliable way on a desktop, which has no GPS. "Detect again" goes back to the browser location.
+- The extension has never used IP geolocation on the server side: it only uses the browser Geolocation API. The imprecision comes from the browser falling back to the internet address when GPS and Wi-Fi are not available.
+- A missing translation for these new texts no longer breaks the globe page.
+
+### 1.8.3
+- Fix (phones): after a resize the globe could be drawn larger than its area and therefore off to one side, with the reticle left in the middle of the screen. The containers created by globe.gl and the canvas are now forced to fill the globe area (so the globe stays centred even while the drawing size is out of date), and the size is re-checked on window resize, orientation change, page zoom (visual viewport), when the page becomes visible again, at the end of every globe movement and every two seconds as a safety net.
+
+### 1.8.2
+- Fix (Check-up report): `LICENSE` was reported as "different from the original" although it was uploaded correctly. FTP clients uploading in text mode convert the line endings, and the check ignored that only for files with a known extension. Text files are now recognised by their content, so files without an extension are handled too. Binary files (images, fonts) are still compared byte by byte.
+
+### 1.8.1
+- "Near me": after the globe reaches your city, the nearest playable station starts straight away; the other nearby stations are in the queue, so previous/next move through them by distance. It happens only when the button is pressed: when the location is used automatically on opening the page, nothing starts by itself (browsers would block audio without a tap anyway).
+
+### 1.8.0
+- New: **Near me** button at the top right of the globe. The browser asks for the location (only the first time), the globe flies to it and the list shows the nearest stations with their distance. The coordinates are rounded to two decimals (about 1 km) before being searched, so the board never receives the exact position. When the browser has already been given the permission, this happens by itself when the globe page is opened (no surprise permission requests). Works only on HTTPS, as required by browsers.
+- New: when the reticle stops on a place, or a dot is clicked, the search box shows its coordinates ("41.8687, 12.4725"). Clicking the box selects them, so typing starts a new search straight away.
+- After a coordinate search (or Near me), turning the globe makes the reticle choose places again.
+- Fix (phones): pinching the globe could also zoom the whole page (a finger on the button or on the texts over the globe, or Safari on iPhone, which uses its own "gesture" events); after zooming out the page stayed enlarged and shifted and only half of the globe was visible. The globe area now blocks page zoom and Safari gestures, while one-finger gestures stay free.
+- Fix: zooming out stops at a sensible distance (4.5 globe radii instead of 100, where the globe became a speck).
+
+### 1.7.0
+- New ACP tab **Check-up report**. It starts by itself when the tab is opened (and again with "Check now") and checks one section at a time, with a progress bar:
+  - **Environment**: extension, phpBB and PHP versions, cURL/TLS, mbstring, intl, zlib, zip, memory limit, execution time, server time.
+  - **Extension files**: every file is compared with `checksums.json`, written when the package is built (missing files, files different from the original, files from old versions). Text files are compared without line endings, so an FTP upload in text mode does not count as a change.
+  - **Downloaded files folder** (`store/radioglobe/`): path, writable, protected by `.htaccess`, free disk space, every file with size and date, leftovers of interrupted updates.
+  - **Database**: tables and rows, migrations run, permissions, ACP tabs, comments and favourites of stations that no longer exist.
+  - **Addresses and phpBB integration**: all 13 addresses of the extension (the check that finds a stale router cache), globe page address and main options.
+  - **Radio stations**: last update, active stations, places, station limit reached, update stuck, last error, automatic update.
+  - **Cities (GeoNames)**: list in use, number of cities, date and age, automatic update, last error, recognition test.
+  - **Connectivity**: Radio Browser (servers and catalogue), GeoNames, iTunes and Esri when used, with response times.
+  - **Real tests**: globe places, search by name and by coordinates, now-playing title read from a real stream, UTF-8 text repair.
+- Coloured summary (all fine / warnings / errors) with counts and time, and "Copy the report" to paste it into a message.
+- It writes nothing: it can be run at any time on a live board.
+- New migration `add_report_module`. New files: `service/health_check.php`, `adm/style/radioglobe_report.html`, `language/*/health.php`, `checksums.json`.
+
+### 1.6.0
+- New: notice when the city list is old. When the list in use (included or downloaded) is older than the chosen age (1–60 months, default 6, counted from the date of the GeoNames data), a notice appears on the Cities (GeoNames) tab and on the ACP main page, with a link to the tab.
+- New: optional automatic update (off by default). A phpBB scheduled task downloads the new list by itself in short steps during visits to the board, like the station update. On errors the previous list stays in use and it is retried the next day. A download started by hand and left half-way is also completed.
+- The check does not contact GeoNames: GeoNames regenerates the file every night, so "is there a newer file?" would always be yes. The age of the list is read from its first lines, so it costs nothing.
+- A lock keeps the scheduled task and the ACP from working on the same files at the same time.
+- New migration `add_cities_auto` (settings `radioglobe_cities_notice`, `radioglobe_cities_max_months`, `radioglobe_cities_auto`, `radioglobe_cities_auto_last`, `radioglobe_cities_lock`). New files: `cron/update_cities.php`, `event/acp_listener.php`, `adm/style/event/acp_main_notice.html`.
+
+### 1.5.0
+- New ACP tab **Cities (GeoNames)**. The city list used to place stations without coordinates (1.4.0) can be updated from GeoNames: the file (about 3.4 MB) is downloaded in 512 KB pieces with a progress bar, extracted (also without the PHP zip extension, with CRC check), converted and checked. It replaces the list in use only when complete (at least 20,000 cities); on any error the previous list stays in use.
+- The tab shows the list in use (included or downloaded), the date of the GeoNames data, the number of cities, the last download and the last error. "Back to the included list" deletes the downloaded copy.
+- The downloaded list is kept in `store/radioglobe/cities.tsv`, so it survives extension updates. It also keeps all the alternative names of cities above 100,000 inhabitants, so new stations called for example "Radio Wien" or "Roma FM" are recognised too.
+- Tested with the real GeoNames file: 15 steps, 3.6 seconds, 28.6 MB of memory at most; 33,782 of 33,789 cities identical to the included list (the other 7 are cities with the same name and population); same placement of all stations.
+- New migration `add_cities_module` (ACP tab, settings `radioglobe_cities_updated`, `radioglobe_cities_count`, `radioglobe_cities_error`). New files: `service/city_update.php`, `adm/style/radioglobe_cities.html`.
+
+### 1.4.1
+- Fix: in the "is listening" notices, user names containing `&`, `'`, `"`, `<` or `>` were shown with HTML codes ("Tom &amp;amp; Jerry"); now they are shown as written.
+- Fix: song titles from streams that do not send UTF-8 are converted as Windows-1252 (a superset of ISO-8859-1), so curly quotes, dashes and € are shown correctly; this also works without the mbstring extension.
+- Fix: double-encoded texts ("DinÃ¡mica", "Donâ€™t") are repaired in station names, regions, tags and song titles, only when the result is valid UTF-8.
+- Titles already broken at the source (two or more "�" characters) are not shown: the player shows the station name instead. Runs of "����" at the end of station names are removed.
+- Fix: station names and countries are escaped in the ACP comments page (a name containing `<` or `&` could break the page).
+- Checked on 756 real stream titles (all valid UTF-8 after the fixes, none with broken characters shown) and on the 37,386 stations of Radio Browser (4 texts repaired, nothing else changed).
+- New file: `service/utf8_text.php`.
+
+### 1.4.0
+- Better placement of stations without coordinates. In order: region field matching a known region (as before), city in the region field ("Tucson AZ", "Krakow"), city in the name or tags ("NRJ Lyon", "Radio Mitre Mendoza", "Radio Bahía Blanca"), region in the name or tags ("Antenne Bayern", "Radio Sicilia"), and only then the whole country.
+- Stations placed on a city join the dot of the stations with coordinates of that city. When the region field is empty it is filled with the city or region found, so the dot has the right name.
+- US stations: the state written at the end ("Salem NH", "Columbia MO") picks the right city among cities with the same name.
+- Guards against false matches: longer names win ("New York", not "York"), words common in radio names all over the world ("radio", "music", "hits", "university"...) and country names ("Deutschland", "Polska", "Europe") are never taken for places.
+- Measured on the Radio Browser list of 19 September 2026 (34,311 stations after the default filters): 3,212 stations leave the "whole country" dots (1,315 from the region field, 1,752 from the name or tags, 145 regions from the name); 15,689 remain on their country.
+- Fix: accents are now removed correctly also on servers without the PHP `intl` extension (ț, ș, ő, č, ă, Greek and Cyrillic letters...), for regions too.
+- New files: `service/city_index.php`, `service/data/cities.tsv` (GeoNames cities15000, reduced, CC BY 4.0), `service/data/words.txt`. GeoNames is credited at the bottom of the globe page. No database changes: the new placement applies from the next station update.
+
 ### 1.3.0
 - New: spinning cover. The cover or logo on the left of the player spins for about 3 seconds at regular intervals while a station is playing. ACP: on/off, interval (5 seconds to 24 hours, in seconds, minutes or hours), style (3D like a coin, or flat like a record) and a "Try" button on the live preview.
 - New: repeated "is listening" notice. While a user keeps listening to the same station, the notice is shown again every N minutes (1–1440, default 10). Only actual listening time counts; pauses do not, and the count survives page changes. Changing station still shows the notice straight away, exactly as before.
@@ -343,6 +446,7 @@ The update downloads the station list from Radio Browser, applies the filters, i
 - **Satellite imagery:** [Esri World Imagery](https://www.arcgis.com/home/item.html?id=10df2279f9684e4a9f6a7f08febac2a9) (Source: Esri, Maxar, Earthstar Geographics and the GIS User Community)
 - **Album covers:** [iTunes Search API](https://performance-partners.apple.com/search-api)
 - **Country centres:** [mledoze/countries](https://github.com/mledoze/countries) (ODbL)
+- **Cities:** [GeoNames](https://www.geonames.org/) cities with more than 15,000 inhabitants ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)), reduced to name, country and coordinates in `service/data/cities.tsv`
 
 ---
 

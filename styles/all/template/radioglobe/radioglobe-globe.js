@@ -27,6 +27,7 @@
 		reticle: document.getElementById('rg-reticle'),
 		reticleLabel: document.getElementById('rg-reticle-label'),
 		search: document.getElementById('rg-search'),
+		locate: document.getElementById('rg-locate'),
 		tabs: document.getElementById('rg-side-tabs'),
 		head: document.getElementById('rg-side-head'),
 		list: document.getElementById('rg-side-list')
@@ -58,6 +59,7 @@
 	 */
 	var dotsMode = cfg.markers !== 'classic';
 	var START_ALTITUDE = 2.3;
+	var MAX_ALTITUDE = 4.5;		// piu' lontano il globo diventerebbe un puntino (globe.gl arriva a 100 raggi)
 	var DOT_SIZE = 0.14;		// raggio angolare di un puntino per unita' di altitudine (circa 5 px di diametro)
 	var markerAltitude = START_ALTITUDE;
 	var markerTimer = null;
@@ -261,6 +263,45 @@
 		return 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/' + level + '/' + y + '/' + x;
 	}
 
+	/*
+	 * Il disegno deve sempre avere la misura dell'area del globo. Se resta indietro (barra degli
+	 * indirizzi che compare o sparisce, rotazione del telefono, zoom della pagina, comparsa del
+	 * player) il disegno diventa piu' grande dell'area e il globo si vede spostato di lato, mentre
+	 * il mirino resta al centro dello schermo.
+	 */
+	function fitToStage() {
+		if (!globe) { return; }
+
+		var w = Math.round(ui.stage.clientWidth);
+		var h = Math.round(ui.stage.clientHeight);
+
+		if (!w || !h) { return; }
+
+		var canvas = ui.globe.querySelector('canvas');
+		// misura con cui il disegno e' stato fatto (il foglio di stile lo costringe comunque a riempire l'area)
+		var drawn = canvas ? [parseFloat(canvas.style.width) || 0, parseFloat(canvas.style.height) || 0] : [0, 0];
+
+		if (Math.abs(drawn[0] - w) < 1 && Math.abs(drawn[1] - h) < 1) {
+			return;
+		}
+
+		// misura vecchia rimasta nel disegno: la si cambia due volte, altrimenti globe.gl la ignora
+		globe.width(Math.max(1, w - 1)).height(Math.max(1, h - 1));
+		globe.width(w).height(h);
+	}
+
+	var fitTimer = null;
+
+	function fitSoon() {
+		clearTimeout(fitTimer);
+		fitTimer = setTimeout(fitToStage, 120);
+	}
+
+	// rete di sicurezza: alcuni telefoni cambiano le misure senza avvisare la pagina
+	setInterval(function () {
+		if (!document.hidden) { fitToStage(); }
+	}, 2000);
+
 	function setStatus(text) {
 		ui.status.textContent = text || '';
 		ui.status.hidden = !text;
@@ -329,11 +370,35 @@
 		controls.autoRotateSpeed = 0.35;
 		controls.enableDamping = true;
 		controls.dampingFactor = 0.12;
+		controls.maxDistance = globe.getGlobeRadius() * (1 + MAX_ALTITUDE);
+
+		/*
+		 * Telefoni: il pizzico sul globo deve ingrandire il globo, non la pagina. Se lo zoom della pagina
+		 * parte insieme (un dito sul pulsante o sulle scritte sopra il globo, oppure Safari su iPhone, che
+		 * per il pizzico usa i suoi eventi "gesture"), rimpicciolendo la pagina resta ingrandita e spostata
+		 * e del globo se ne vede solo una parte.
+		 */
+		var stopPageZoom = function (e) {
+			if (e.cancelable) { e.preventDefault(); }
+		};
+		['gesturestart', 'gesturechange', 'gestureend'].forEach(function (type) {
+			ui.stage.addEventListener(type, stopPageZoom, { passive: false });
+		});
+		ui.stage.addEventListener('touchmove', function (e) {
+			if (e.touches && e.touches.length > 1) { stopPageZoom(e); }
+		}, { passive: false });
 
 		controls.addEventListener('start', function () {
 			userMoved = true;
 			controls.autoRotate = false;
 			ui.tooltip.hidden = true;
+
+			// dopo una ricerca per coordinate (o "la mia posizione"), girando il globo il mirino torna attivo
+			if (searchPoint && searchTerm) {
+				searchTerm = '';
+				searchPoint = null;
+				updateRings();
+			}
 		});
 
 		controls.addEventListener('change', function () {
@@ -349,14 +414,21 @@
 			ui.globe.style.cursor = '';
 		});
 
+
 		if ('ResizeObserver' in window) {
-			new ResizeObserver(function () {
-				globe.width(ui.stage.clientWidth).height(ui.stage.clientHeight);
-			}).observe(ui.stage);
-		} else {
-			window.addEventListener('resize', function () {
-				globe.width(ui.stage.clientWidth).height(ui.stage.clientHeight);
-			});
+			new ResizeObserver(fitSoon).observe(ui.stage);
+		}
+
+		window.addEventListener('resize', fitSoon);
+		window.addEventListener('orientationchange', fitSoon);
+		window.addEventListener('pageshow', fitSoon);
+		document.addEventListener('visibilitychange', fitSoon);
+		controls.addEventListener('end', fitSoon);
+
+		// zoom e scorrimento della pagina sui telefoni non cambiano le misure del documento
+		if (window.visualViewport) {
+			window.visualViewport.addEventListener('resize', fitSoon);
+			window.visualViewport.addEventListener('scroll', fitSoon);
 		}
 	}
 
@@ -401,6 +473,8 @@
 	}
 
 	function reticleSettled() {
+		fitToStage();
+
 		if (view !== 'explore' || searchTerm) { return; }
 		var p = updateReticle();
 		if (p && (!currentPlace || currentPlace.key !== p.key)) {
@@ -479,8 +553,12 @@
 
 		if (searchTerm) {
 			searchTerm = '';
-			ui.search.value = '';
+			searchPoint = null;
+			updateRings();
 		}
+
+		// il campo di ricerca mostra dove si trova il luogo: scrivendo si cerca come sempre
+		ui.search.value = fmtCoords(place.lat, place.lng, 4);
 
 		if (view !== 'explore') {
 			setView('explore', true);
@@ -541,8 +619,20 @@
 				var list = playable(currentStations);
 				if (list.length) { RG.play(list[Math.floor(Math.random() * list.length)], list, place.title); }
 			});
+			// il luogo diventa la propria posizione: cosi' "Vicino a me" funziona anche senza GPS
+			var hereBtn = el('button', 'rg-icon');
+			hereBtn.type = 'button';
+			hereBtn.title = txt('locateUsePlace', '');
+			hereBtn.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'
+				+ '<path d="M8 14.5s5-4.2 5-8a5 5 0 0 0-10 0c0 3.8 5 8 5 8z"/><circle cx="8" cy="6.4" r="1.9"/></svg>';
+			hereBtn.addEventListener('click', function () {
+				saveMyPos(place.lat, place.lng);
+				RG.toast(txt('locateSavedOk', ''));
+			});
+
 			actions.appendChild(playBtn);
 			actions.appendChild(shuffleBtn);
+			actions.appendChild(hereBtn);
 			ui.head.appendChild(actions);
 		}
 
@@ -615,15 +705,23 @@
 	function playAndLocate(list, listName) {
 		return function (s) {
 			RG.play(s, playable(list), listName);
+
 			if (typeof s.lat === 'number') { flyTo(s.lat, s.lng, 0.9); }
+
+			// si apre il luogo della stazione scelta: cosi' si vedono le altre radio della stessa
+			// citta' e c'e' il segnaposto per usarla come propria posizione
 			if (s.place && byKey[s.place]) {
-				currentPlace = byKey[s.place];
-				updateRings();
+				pendingStation = s.id;
+				selectPlace(byKey[s.place], false);
 			}
 		};
 	}
 
-	function runSearch(term) {
+	/**
+	 * @param {string}  term
+	 * @param {boolean} autoplay "Vicino a me": parte subito la stazione piu' vicina (le altre in coda)
+	 */
+	function runSearch(term, autoplay) {
 		searchTerm = term;
 		if (searchPoint) {
 			searchPoint = null;
@@ -658,14 +756,253 @@
 				searchPoint = { lat: c.lat, lng: c.lng };
 				ui.head.innerHTML = '';
 				ui.head.appendChild(el('h2', '', label));
+				locateNotice(c.lat, c.lng);
 				flyTo(c.lat, c.lng, 0.12);
 				updateRings();
 				renderList(list, label, true, playAndLocate(list, label));
+
+				if (autoplay) {
+					var queue = playable(list);
+					if (queue.length) {
+						RG.play(queue[0], queue, label);
+						RG.markCurrentRows(ui.list);
+					}
+				}
 				return;
 			}
 
 			renderList(list, L.searchResults.replace('%s', term), true, playAndLocate(list, L.searchResults.replace('%s', term)));
 		});
+	}
+
+	/** "41.9028, 12.4964": lo stesso formato che la ricerca riconosce come coordinate. */
+	function fmtCoords(lat, lng, decimals) {
+		return lat.toFixed(decimals) + ', ' + lng.toFixed(decimals);
+	}
+
+	// cliccando nel campo che mostra le coordinate del luogo, il testo si seleziona tutto e si scrive subito
+	ui.search.addEventListener('focus', function () {
+		if (!searchTerm && ui.search.value) {
+			ui.search.select();
+		}
+	});
+
+	/* ------------------------------------------------------------------
+	 * La mia posizione
+	 *
+	 * Si usa la Geolocation API del browser (niente indirizzi IP letti dal forum), ma la posizione
+	 * che il browser restituisce puo' venire dal GPS, dalle reti Wi-Fi o, quando non c'e' altro,
+	 * dall'indirizzo internet: in quest'ultimo caso finisce sulla citta' del provider, anche a
+	 * centinaia di chilometri. Per questo:
+	 *  - si chiede la massima precisione e si resta in ascolto qualche secondo, perche' la prima
+	 *    risposta e' quasi sempre quella dalla rete e il GPS arriva dopo;
+	 *  - si tiene la lettura piu' precisa e la si mostra all'utente con il suo margine di errore;
+	 *  - l'utente puo' salvare una posizione scelta a mano ("Usa come mia posizione"), che vince
+	 *    su tutto: e' l'unico modo affidabile su un computer fisso, che il GPS non ce l'ha.
+	 * Le coordinate vengono arrotondate a due decimali (circa un chilometro) prima della ricerca,
+	 * cosi' al forum non arriva la posizione esatta.
+	 * ---------------------------------------------------------------- */
+	var MY_POS_KEY = 'radioglobe.mypos.v1';
+	var GOOD_ACCURACY = 1000;		// metri: da qui in giu' e' una lettura buona (GPS o Wi-Fi)
+	var POOR_ACCURACY = 1500;		// metri: sopra il chilometro e mezzo non e' GPS, e la citta' puo' essere sbagliata
+	var LOCATE_WAIT = 12000;		// quanto si aspetta in tutto una risposta dal browser
+	var LOCATE_REFINE = 5000;		// dopo la prima risposta, quanto si aspetta una lettura migliore
+	var locating = false;
+	var locateInfo = null;			// dati dell'ultima localizzazione, mostrati sopra l'elenco
+
+	function myPos() {
+		try {
+			var raw = JSON.parse(window.localStorage.getItem(MY_POS_KEY) || 'null');
+			return (raw && typeof raw.lat === 'number' && typeof raw.lng === 'number') ? raw : null;
+		} catch (e) {
+			return null;
+		}
+	}
+
+	function saveMyPos(lat, lng) {
+		try {
+			window.localStorage.setItem(MY_POS_KEY, JSON.stringify({ lat: lat, lng: lng }));
+		} catch (e) { /* navigazione privata */ }
+	}
+
+	function forgetMyPos() {
+		try { window.localStorage.removeItem(MY_POS_KEY); } catch (e) {}
+	}
+
+	function goToPos(lat, lng, silent) {
+		if (globe) { globe.controls().autoRotate = false; }
+		userMoved = true;
+		var term = fmtCoords(lat, lng, 2);
+		ui.search.value = term;
+		// premendo il pulsante parte la stazione piu' vicina; all'apertura della pagina no
+		// (senza un tocco il browser bloccherebbe comunque l'audio)
+		runSearch(term, !silent);
+	}
+
+	function locateMe(silent) {
+		if (locating) { return; }
+
+		var saved = myPos();
+
+		if (saved) {
+			locateInfo = { saved: true };
+			goToPos(saved.lat, saved.lng, silent);
+			return;
+		}
+
+		if (!navigator.geolocation) { return; }
+
+		locating = true;
+		ui.locate.classList.add('rg-busy');
+
+		var best = null;
+		var watch = null;
+		var timer = null;
+		var done = false;
+
+		function finish(err) {
+			if (done) { return; }
+			done = true;
+			locating = false;
+			ui.locate.classList.remove('rg-busy');
+			clearTimeout(timer);
+
+			if (watch !== null && navigator.geolocation.clearWatch) {
+				navigator.geolocation.clearWatch(watch);
+			}
+
+			if (best) {
+				locateInfo = { accuracy: best.coords.accuracy, lat: best.coords.latitude, lng: best.coords.longitude };
+				goToPos(best.coords.latitude, best.coords.longitude, silent);
+			} else if (!silent) {
+				RG.toast(err && err.code === 1 ? L.locateDenied : L.locateFailed);
+			}
+		}
+
+		function seen(pos) {
+			if (!best || pos.coords.accuracy < best.coords.accuracy) { best = pos; }
+
+			// lettura buona: inutile aspettare ancora
+			if (pos.coords.accuracy <= GOOD_ACCURACY) {
+				finish(null);
+				return;
+			}
+
+			// lettura grossolana (di solito quella dalla rete): si da' al GPS qualche secondo, non di piu'
+			clearTimeout(timer);
+			timer = setTimeout(function () { finish(null); }, LOCATE_REFINE);
+		}
+
+		timer = setTimeout(function () { finish(null); }, LOCATE_WAIT);
+
+		// si resta in ascolto: la prima risposta e' spesso quella dalla rete, il GPS arriva dopo
+		if (navigator.geolocation.watchPosition) {
+			watch = navigator.geolocation.watchPosition(seen, function (err) {
+				if (!best) { finish(err); }
+			}, { enableHighAccuracy: true, timeout: LOCATE_WAIT, maximumAge: 0 });
+		} else {
+			navigator.geolocation.getCurrentPosition(seen, finish, { enableHighAccuracy: true, timeout: LOCATE_WAIT, maximumAge: 0 });
+		}
+	}
+
+	/** Testo tradotto, con una riserva se la traduzione e' incompleta. */
+	function txt(key, fallback) {
+		return L[key] || fallback;
+	}
+
+	/** "450 m", "45 km": il margine di errore della posizione, in parole semplici. */
+	function fmtAccuracy(metres) {
+		return metres >= 1000 ? Math.round(metres / 1000) + ' km' : Math.round(metres) + ' m';
+	}
+
+	/**
+	 * Sopra l'elenco delle stazioni vicine: quanto e' precisa la posizione e come correggerla.
+	 */
+	function locateNotice(lat, lng) {
+		if (!locateInfo) { return; }
+
+		var info = locateInfo;
+		locateInfo = null;
+		var note = el('p', 'rg-locate-note');
+
+		if (info.saved) {
+			note.textContent = txt('locateSavedInUse', 'La posizione che hai salvato.');
+		} else if (info.accuracy) {
+			note.textContent = txt('locateAccuracy', '± %s').replace('%s', fmtAccuracy(info.accuracy));
+
+			if (info.accuracy > POOR_ACCURACY) {
+				note.className += ' rg-locate-warn';
+				note.textContent += ' ' + txt('locatePoor', '');
+			}
+		}
+
+		ui.head.appendChild(note);
+
+		var actions = el('div', 'rg-head-actions');
+
+		if (info.saved) {
+			var again = el('button', 'rg-pill');
+			again.type = 'button';
+			again.textContent = txt('locateAgain', 'GPS');
+			again.addEventListener('click', function () {
+				forgetMyPos();
+				locateMe(false);
+			});
+			actions.appendChild(again);
+		} else {
+			var save = el('button', 'rg-pill');
+			save.type = 'button';
+			save.textContent = txt('locateSave', 'OK');
+			save.addEventListener('click', function () {
+				saveMyPos(lat, lng);
+				RG.toast(txt('locateSavedOk', ''));
+			});
+			actions.appendChild(save);
+
+			// il rimedio vero quando la citta' e' sbagliata: cercare la propria e salvarla
+			var wrong = el('button', 'rg-pill rg-pill-quiet');
+			wrong.type = 'button';
+			wrong.textContent = txt('locateWrong', '?');
+			wrong.addEventListener('click', function () {
+				searchTerm = '';
+				searchPoint = null;
+				updateRings();
+				ui.search.value = '';
+				ui.search.focus();
+				ui.head.innerHTML = '';
+				ui.head.appendChild(el('h2', '', txt('locateWrong', '?')));
+				ui.head.appendChild(el('p', 'rg-locate-note', txt('locateWrongHelp', '')));
+				ui.list.innerHTML = '';
+			});
+			actions.appendChild(wrong);
+		}
+
+		ui.head.appendChild(actions);
+	}
+
+	// la posizione si puo' chiedere solo su HTTPS
+	if (ui.locate && navigator.geolocation && window.isSecureContext !== false) {
+		ui.locate.hidden = false;
+		ui.locate.addEventListener('click', function () { locateMe(false); });
+	}
+
+	/** All'apertura: si va sulla posizione dell'utente solo se il permesso e' gia' stato dato (niente richieste a sorpresa). */
+	function autoLocate() {
+		if (!ui.locate || ui.locate.hidden) { return; }
+
+		// posizione salvata dall'utente: non serve nessun permesso
+		if (myPos()) {
+			setTimeout(function () { if (!userMoved) { locateMe(true); } }, 1600);
+			return;
+		}
+
+		if (!navigator.permissions || !navigator.permissions.query) { return; }
+		navigator.permissions.query({ name: 'geolocation' }).then(function (status) {
+			// dopo l'animazione d'ingresso del globo: durante l'animazione il volo verso la posizione verrebbe annullato
+			if (status.state === 'granted') {
+				setTimeout(function () { if (!userMoved) { locateMe(true); } }, 1600);
+			}
+		}, function () {});
 	}
 
 	ui.search.addEventListener('input', function () {
@@ -688,6 +1025,32 @@
 	RG.on('station', function () {
 		updateRings();
 		RG.markCurrentRows(ui.list);
+	});
+
+	// una stazione tolta dall'elenco: il puntino del suo luogo perde una radio e, se resta vuoto, sparisce
+	RG.on('stationRemoved', function (data) {
+		var place = data && data.place ? byKey[data.place] : null;
+
+		if (!place) { return; }
+
+		place.n = Math.max(0, parseInt(data.place_count, 10) || 0);
+
+		if (place.n === 0) {
+			places = places.filter(function (p) { return p.key !== place.key; });
+			delete byKey[place.key];
+
+			if (currentPlace && currentPlace.key === place.key) {
+				currentPlace = null;
+				updateRings();
+			}
+		}
+
+		if (globe) { globe.pointsData(places); }
+
+		if (currentPlace && currentPlace.key === place.key) {
+			currentStations = currentStations.filter(function (s) { return s.id !== data.station_id; });
+			renderPlaceHead(currentPlace, false);
+		}
 	});
 
 	RG.on('locate', function (s) {
@@ -744,6 +1107,8 @@
 			userMoved = true;
 			flyTo(s.lat, s.lng, 1.2);
 			selectPlace(byKey[s.place], false);
+		} else {
+			autoLocate();
 		}
 
 		updateRings();

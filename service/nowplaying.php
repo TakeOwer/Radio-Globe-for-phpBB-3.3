@@ -175,8 +175,8 @@ class nowplaying
 	 */
 	protected function clean_song(array $song, $station_name)
 	{
-		$artist = trim(html_entity_decode((string) $song['artist'], ENT_QUOTES | ENT_HTML5, 'UTF-8'));
-		$track = trim(html_entity_decode((string) $song['track'], ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+		$artist = trim(html_entity_decode(utf8_text::fix($song['artist']), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+		$track = trim(html_entity_decode(utf8_text::fix($song['track']), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
 		$station = utf8_strtolower(trim((string) $station_name));
 
 		if ($this->is_placeholder($artist) || utf8_strtolower($artist) === $station)
@@ -190,6 +190,12 @@ class nowplaying
 		}
 
 		if (!$this->is_meaningful(($artist !== '' ? $artist . ' - ' : '') . $track, $station_name))
+		{
+			return null;
+		}
+
+		// titolo rovinato gia' alla fonte (caratteri sostitutivi U+FFFD): meglio il nome della stazione
+		if (substr_count($artist . $track, "\u{FFFD}") >= 2)
 		{
 			return null;
 		}

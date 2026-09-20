@@ -410,10 +410,49 @@ body.rg-has-player .rg-page { height: calc(100vh - 230px - var(--rg-bar-h)); }
 
 .rg-stage {
 	position: relative; min-width: 0; overflow: hidden;
+	/* il pizzico e il trascinamento sul globo muovono il globo, mai la pagina */
+	touch-action: none; overscroll-behavior: contain;
 	background: radial-gradient(ellipse at 50% 55%, #0c1a14 0%, #04070a 70%);
 }
 .rg-globe { position: absolute; inset: 0; }
-.rg-globe canvas { display: block; outline: none; }
+
+/* "Vicino a me": porta il globo sulla posizione dell'utente */
+.rg-locate {
+	position: absolute; top: 12px; right: 12px; z-index: 3;
+	display: inline-flex; align-items: center; gap: 6px;
+	padding: 7px 12px 7px 9px; border: 1px solid rgba(255,255,255,.18); border-radius: 18px;
+	background: rgba(10,14,18,.72); color: #fff; font: 600 12px/1 var(--rg-font); cursor: pointer;
+	-webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+}
+.rg-locate:hover, .rg-locate:focus-visible { border-color: var(--rg-green); color: var(--rg-green); outline: none; }
+.rg-locate svg { width: 16px; height: 16px; }
+.rg-locate.rg-busy svg { animation: rg-locate-pulse 1s ease-in-out infinite; }
+
+.rg-locate-note { margin: 4px 0 0; font-size: 13px; color: var(--rg-dim); }
+.rg-locate-note.rg-locate-warn { color: #ffb84d; }
+.rg-pill {
+	padding: 6px 14px; border: 1px solid #3a3a3a; border-radius: 16px;
+	background: #1f1f1f; color: var(--rg-text); font: 600 12px/1 var(--rg-font); cursor: pointer;
+}
+.rg-pill:hover { border-color: var(--rg-green); color: var(--rg-green); }
+.rg-pill-quiet { background: transparent; color: var(--rg-dim); }
+
+/* cestino nelle righe delle stazioni: toglie la stazione dall'elenco del forum */
+.rg-row-remove { color: #b94a48; opacity: 0; transition: opacity .15s ease, color .15s ease; }
+.rg-row:hover .rg-row-remove, .rg-row:focus-within .rg-row-remove { opacity: 1; }
+.rg-row-remove:hover { color: #ff5f56; }
+@media (hover: none) {
+	.rg-row-remove { opacity: 1; }
+}
+@keyframes rg-locate-pulse { 50% { opacity: .3; } }
+/*
+ * Il contenitore della scena (creato da globe.gl) e il disegno riempiono sempre l'area del globo:
+ * se la misura resta indietro, per esempio dopo un ridimensionamento della finestra o uno zoom
+ * della pagina sul telefono, il globo resta comunque centrato invece di scivolare di lato.
+ */
+.rg-globe div { width: 100% !important; height: 100% !important; }
+.rg-globe .scene-tooltip { width: auto !important; height: auto !important; }
+.rg-globe canvas { display: block; outline: none; width: 100% !important; height: 100% !important; }
 
 .rg-globe-status {
 	position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);

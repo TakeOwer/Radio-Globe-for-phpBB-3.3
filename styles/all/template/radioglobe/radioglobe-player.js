@@ -376,6 +376,7 @@
 
 	function startStream() {
 		state.wantPlay = true;
+		broadcast('playing');
 		state.loading = true;
 		state.startedAt = Date.now();
 		state.pausedAt = 0;
@@ -419,12 +420,18 @@
 		render();
 	}
 
-	function pause() {
+	/**
+	 * @param {boolean} quiet true quando la pausa arriva da un'altra scheda: non la si rimanda indietro
+	 */
+	function pause(quiet) {
 		state.wantPlay = false;
 		state.pausedAt = Date.now();
 		audio.pause();
+		stopAllAudio();
 		save();
 		render();
+
+		if (!quiet) { broadcast('stop'); }
 	}
 
 	function step(dir) {
@@ -529,18 +536,42 @@
 		if (state.repeat && state.wantPlay) { startStream(); }
 	});
 
-	/* Un solo tab alla volta: quando parte un altro tab, questo si ferma. */
+	/*
+	 * Una sola scheda alla volta suona, e il comando di pausa vale per tutte.
+	 *
+	 * Ogni scheda del forum ha il suo player: quando una fa partire l'audio (anche riprendendo da
+	 * sola la stazione al cambio pagina) lo dice alle altre, che si fermano; quando una viene messa
+	 * in pausa o chiusa lo dice lo stesso, altrimenti si fermerebbe solo quella che si sta guardando
+	 * e le altre continuerebbero a suonare senza un comando per fermarle.
+	 */
 	var channel = ('BroadcastChannel' in window) ? new BroadcastChannel('radioglobe') : null;
 	var tabId = Math.random().toString(36).slice(2);
-	function broadcast() {
-		if (channel) { channel.postMessage({ type: 'playing', tab: tabId }); }
+
+	function broadcast(type) {
+		if (channel) { channel.postMessage({ type: type || 'playing', tab: tabId }); }
 	}
+
 	if (channel) {
 		channel.onmessage = function (e) {
-			if (e.data && e.data.type === 'playing' && e.data.tab !== tabId && !audio.paused) {
-				pause();
+			if (!e.data || e.data.tab === tabId) { return; }
+
+			if (e.data.type === 'playing' && !audio.paused) {
+				pause(true);
+			} else if (e.data.type === 'stop') {
+				// un'altra scheda ha premuto pausa o ha chiuso il player: si ferma anche questa
+				state.wantPlay = false;
+				if (!audio.paused) { pause(true); }
 			}
 		};
+	}
+
+	/** Ferma qualsiasi audio della pagina: se per un errore ne esistesse piu' d'uno, tacciono tutti. */
+	function stopAllAudio() {
+		var tags = document.getElementsByTagName('audio');
+
+		for (var i = 0; i < tags.length; i++) {
+			if (!tags[i].paused) { tags[i].pause(); }
+		}
 	}
 
 	/* ------------------------------------------------------------------
@@ -743,6 +774,36 @@
 				});
 			});
 			row.appendChild(fav);
+		}
+
+		// cestino: toglie la stazione dall'elenco del forum (solo per chi ne ha il permesso)
+		if (cfg.canRemoveStation && cfg.stationRemoveUrl) {
+			var bin = el('button', 'rg-icon rg-row-remove');
+			bin.type = 'button';
+			bin.innerHTML = ICONS.trash;
+			bin.title = L.removeStation || '';
+			bin.addEventListener('click', function (e) {
+				e.stopPropagation();
+
+				if (!window.confirm((L.removeStationAsk || '%s').replace('%s', station.name))) { return; }
+
+				bin.disabled = true;
+				removeStation(station).then(function (data) {
+					bin.disabled = false;
+
+					if (!data || !data.success) {
+						toast((data && data.message) || L.error);
+						return;
+					}
+
+					// via da tutte le liste aperte, non solo da questa riga
+					var open = document.querySelectorAll('.rg-row[data-id="' + station.id + '"]');
+					for (var i = 0; i < open.length; i++) { open[i].remove(); }
+
+					toast((L.removedStation || '%s').replace('%s', station.name));
+				});
+			});
+			row.appendChild(bin);
 		}
 
 		function activate() {
@@ -968,6 +1029,33 @@
 		}
 
 		return item;
+	}
+
+	/**
+	 * Toglie una stazione dall'elenco del forum. Se e' quella in ascolto si passa alla successiva,
+	 * la coda la dimentica e il globo aggiorna il puntino del suo luogo.
+	 */
+	function removeStation(station) {
+		return request(cfg.stationRemoveUrl, { post: { station_id: station.id } }).then(function (data) {
+			if (!data || !data.success) { return data; }
+
+			var index = findIndex(station.id);
+
+			if (index > -1) { state.queue.splice(index, 1); }
+
+			if (state.station && state.station.id === station.id) {
+				if (state.queue.length) {
+					play(state.queue[Math.min(index, state.queue.length - 1)], state.queue, state.queueName);
+				} else {
+					pause();
+				}
+			}
+
+			save();
+			emit('stationRemoved', data);
+
+			return data;
+		});
 	}
 
 	/* ------------------------------------------------------------------
@@ -1318,8 +1406,8 @@
 		if (cfg.canFavorite) { loadFavorites(); }
 		render();
 
-		if (state.wantPlay && canPlayHere(state.station)) {
-			// si riprende la stazione della pagina precedente
+		if (state.wantPlay && cfg.resumeOnLoad !== false && canPlayHere(state.station)) {
+			// si riprende la stazione della pagina precedente (ACP: "Riprendi l'ascolto al cambio pagina")
 			startStream();
 		} else {
 			state.wantPlay = false;
