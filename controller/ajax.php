@@ -32,6 +32,7 @@ class ajax
 	protected $comments;
 	protected $nowplaying;
 	protected $listens;
+	protected $log;
 	protected $root_path;
 	protected $php_ext;
 
@@ -46,6 +47,7 @@ class ajax
 		comment_repository $comments,
 		nowplaying $nowplaying,
 		listen_repository $listens,
+		\phpbb\log\log_interface $log,
 		$root_path,
 		$php_ext
 	)
@@ -60,6 +62,7 @@ class ajax
 		$this->comments = $comments;
 		$this->nowplaying = $nowplaying;
 		$this->listens = $listens;
+		$this->log = $log;
 		$this->root_path = $root_path;
 		$this->php_ext = $php_ext;
 
@@ -100,6 +103,12 @@ class ajax
 	protected function can_moderate()
 	{
 		return !$this->is_guest() && $this->auth->acl_get('m_radioglobe_comments');
+	}
+
+	/** Chi puo' togliere dall'elenco le stazioni morte o sbagliate (amministratori e moderatori). */
+	protected function can_remove_stations()
+	{
+		return !$this->is_guest() && $this->auth->acl_get('m_radioglobe_stations');
 	}
 
 	protected function valid_hash()
@@ -391,7 +400,7 @@ class ajax
 
 			$events[] = [
 				'id'		=> (int) $row['event_id'],
-				'user'		=> $row['username'],
+				'user'		=> html_entity_decode($row['username'], ENT_QUOTES, 'UTF-8'),
 				'colour'	=> $colour,
 				'profile'	=> append_sid(generate_board_url() . '/memberlist.' . $this->php_ext, 'mode=viewprofile&u=' . (int) $row['user_id'], false),
 				'title'		=> $np ? $np['title'] : '',
@@ -550,6 +559,47 @@ class ajax
 			'success'	=> true,
 			'comment'	=> $this->format_comment($row),
 			'total'		=> $this->comments->count_for_station($station_id),
+		]);
+	}
+
+	/**
+	 * Toglie una stazione dall'elenco del forum (cestino accanto alla stazione).
+	 * La stazione viene disattivata: torna al prossimo aggiornamento delle stazioni.
+	 */
+	public function station_remove()
+	{
+		if (!$this->can_listen() || !$this->can_remove_stations())
+		{
+			return $this->error('RADIOGLOBE_NO_PERMISSION');
+		}
+
+		if (!$this->valid_hash())
+		{
+			return $this->error('FORM_INVALID', 400);
+		}
+
+		$station = $this->stations->deactivate($this->request->variable('station_id', 0));
+
+		if ($station === null)
+		{
+			return $this->error('RADIOGLOBE_STATION_NOT_FOUND', 404);
+		}
+
+		$this->config->set('radioglobe_sync_count', max(0, (int) $this->config['radioglobe_sync_count'] - 1), false);
+
+		if (!empty($station['place_gone']))
+		{
+			$this->config->set('radioglobe_sync_places', max(0, (int) $this->config['radioglobe_sync_places'] - 1), false);
+		}
+
+		$this->log->add('admin', (int) $this->user->data['user_id'], $this->user->ip, 'LOG_RADIOGLOBE_STATION_REMOVED', time(), [$station['station_name']]);
+
+		return new JsonResponse([
+			'success'		=> true,
+			'station_id'	=> (int) $station['station_id'],
+			'name'			=> $station['station_name'],
+			'place'			=> $station['place_key'],
+			'place_count'	=> (int) $station['place_count'],
 		]);
 	}
 

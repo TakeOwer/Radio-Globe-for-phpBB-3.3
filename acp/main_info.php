@@ -33,8 +33,18 @@ class main_info
 					'auth'	=> 'ext_salvocortesiano/radioglobe && acl_a_board',
 					'cat'	=> ['ACP_RADIOGLOBE_TITLE'],
 				],
+				'cities'	=> [
+					'title'	=> 'ACP_RADIOGLOBE_CITIES',
+					'auth'	=> 'ext_salvocortesiano/radioglobe && acl_a_board',
+					'cat'	=> ['ACP_RADIOGLOBE_TITLE'],
+				],
 				'comments'	=> [
 					'title'	=> 'ACP_RADIOGLOBE_COMMENTS',
+					'auth'	=> 'ext_salvocortesiano/radioglobe && acl_a_board',
+					'cat'	=> ['ACP_RADIOGLOBE_TITLE'],
+				],
+				'report'	=> [
+					'title'	=> 'ACP_RADIOGLOBE_REPORT',
 					'auth'	=> 'ext_salvocortesiano/radioglobe && acl_a_board',
 					'cat'	=> ['ACP_RADIOGLOBE_TITLE'],
 				],

@@ -46,6 +46,18 @@ class main_module
 				$this->handle_sync($phpbb_container, $request, $template, $user, $config);
 			break;
 
+			case 'cities':
+				$this->page_title = 'ACP_RADIOGLOBE_CITIES';
+				$this->tpl_name = 'radioglobe_cities';
+				$this->handle_cities($phpbb_container, $request, $template, $user, $config);
+			break;
+
+			case 'report':
+				$this->page_title = 'ACP_RADIOGLOBE_REPORT';
+				$this->tpl_name = 'radioglobe_report';
+				$this->handle_report($phpbb_container, $request, $template, $user);
+			break;
+
 			case 'comments':
 				$this->page_title = 'ACP_RADIOGLOBE_COMMENTS';
 				$this->tpl_name = 'radioglobe_comments';
@@ -182,6 +194,7 @@ class main_module
 			$config->set('radioglobe_cron_hours', implode(',', $hours));
 
 			$config->set('radioglobe_player_everywhere', $request->variable('radioglobe_player_everywhere', 1));
+			$config->set('radioglobe_player_resume', $request->variable('radioglobe_player_resume', 1));
 			$config->set('radioglobe_player_opacity', max(10, min(100, $request->variable('radioglobe_player_opacity', 100))));
 			$config->set('radioglobe_nav_link', $request->variable('radioglobe_nav_link', 1));
 			$config->set('radioglobe_nowplaying', $request->variable('radioglobe_nowplaying', 1));
@@ -249,6 +262,7 @@ class main_module
 			'RADIOGLOBE_TAGS'				=> $config_text->get('radioglobe_tags'),
 			'S_RADIOGLOBE_CRON_ENABLED'		=> (bool) $config['radioglobe_cron_enabled'],
 			'S_RADIOGLOBE_PLAYER_EVERYWHERE'=> (bool) $config['radioglobe_player_everywhere'],
+			'S_RADIOGLOBE_PLAYER_RESUME'	=> !isset($config['radioglobe_player_resume']) || (bool) $config['radioglobe_player_resume'],
 			'RADIOGLOBE_PLAYER_OPACITY'		=> isset($config['radioglobe_player_opacity']) ? (int) $config['radioglobe_player_opacity'] : 100,
 			'RADIOGLOBE_PLAYER_CSS'			=> generate_board_url() . '/ext/salvocortesiano/radioglobe/styles/all/theme/radioglobe.css?v=' . (int) @filemtime(__DIR__ . '/../styles/all/theme/radioglobe.css'),
 			'RADIOGLOBE_PREVIEW_IMAGE'		=> generate_board_url() . '/ext/salvocortesiano/radioglobe/styles/all/theme/images/earth-blue-marble.jpg',
@@ -416,6 +430,186 @@ class main_module
 		}
 
 		return $text;
+	}
+
+	/* ==================================================================
+	 * Citta' (GeoNames)
+	 * Elenco delle citta' per collocare le stazioni senza coordinate: si
+	 * scarica a passi, con la stessa barra dell'aggiornamento stazioni.
+	 * ================================================================ */
+
+	protected function handle_cities($phpbb_container, $request, $template, $user, $config)
+	{
+		/** @var \salvocortesiano\radioglobe\service\city_update $update */
+		$update = $phpbb_container->get('salvocortesiano.radioglobe.city_update');
+		$action = $request->variable('action', '');
+		$form_key = 'radioglobe_cities';
+
+		add_form_key($form_key);
+
+		// Passo dell'aggiornamento: risponde in JSON e termina qui
+		if ($action === 'cities_step' && $request->is_ajax())
+		{
+			$this->cities_step($update, $request, $user, $config, $form_key);
+		}
+
+		if ($request->is_set_post('cancel') || $request->is_set_post('bundled') || $request->is_set_post('save_options'))
+		{
+			if (!check_form_key($form_key))
+			{
+				trigger_error('FORM_INVALID' . adm_back_link($this->u_action), E_USER_WARNING);
+			}
+
+			if ($request->is_set_post('save_options'))
+			{
+				$config->set('radioglobe_cities_notice', $request->variable('radioglobe_cities_notice', 1) ? 1 : 0);
+				$config->set('radioglobe_cities_max_months', max(1, min(60, $request->variable('radioglobe_cities_max_months', 6))));
+				$config->set('radioglobe_cities_auto', $request->variable('radioglobe_cities_auto', 0) ? 1 : 0);
+				trigger_error($user->lang('RADIOGLOBE_SETTINGS_SAVED') . adm_back_link($this->u_action));
+			}
+
+			if ($request->is_set_post('cancel'))
+			{
+				$update->abort($user->lang('RADIOGLOBE_CITIES_CANCELLED'));
+				trigger_error($user->lang('RADIOGLOBE_CITIES_CANCELLED') . adm_back_link($this->u_action));
+			}
+
+			$update->use_bundled();
+			$this->log_action($user, 'LOG_RADIOGLOBE_CITIES_BUNDLED');
+			trigger_error($user->lang('RADIOGLOBE_CITIES_BUNDLED_DONE') . adm_back_link($this->u_action));
+		}
+
+		$state = $update->get_state();
+		$info = $update->info();
+
+		$template->assign_vars([
+			'U_ACTION'				=> $this->u_action,
+			'U_CITIES_STEP'			=> $this->u_action . '&amp;action=cities_step',
+			'S_CITIES_RUNNING'		=> $state !== null,
+			'S_CITIES_DOWNLOADED'	=> $info['downloaded'],
+			'CITIES_PERCENT'		=> ($state !== null) ? $update->get_percent($state) : 0,
+			'CITIES_PROGRESS'		=> ($state !== null) ? $this->cities_progress_text($user, $state) : '',
+			'CITIES_DATE'			=> $info['date'],
+			'CITIES_COUNT'			=> number_format($info['cities'], 0, ',', '.'),
+			'CITIES_UPDATED'		=> !empty($config['radioglobe_cities_updated']) ? $user->format_date((int) $config['radioglobe_cities_updated']) : $user->lang('RADIOGLOBE_NEVER'),
+			'CITIES_ERROR'			=> ($state === null && !empty($config['radioglobe_cities_error'])) ? htmlspecialchars($config['radioglobe_cities_error'], ENT_COMPAT, 'UTF-8') : '',
+			'S_STORE_WRITABLE'		=> $update->is_store_writable(),
+			'S_CITIES_AUTO_RUN'		=> $state !== null && isset($state['source']) && $state['source'] === 'cron',
+			'CITIES_OLD_TEXT'		=> ($state === null && !empty($config['radioglobe_cities_notice']) && $update->is_outdated()) ? \salvocortesiano\radioglobe\event\acp_listener::notice_text($user, $update, $config) : '',
+			'S_CITIES_NOTICE'		=> !isset($config['radioglobe_cities_notice']) || !empty($config['radioglobe_cities_notice']),
+			'CITIES_MAX_MONTHS'		=> isset($config['radioglobe_cities_max_months']) ? (int) $config['radioglobe_cities_max_months'] : 6,
+			'S_CITIES_AUTO'			=> !empty($config['radioglobe_cities_auto']),
+			'CITIES_AUTO_LAST'		=> !empty($config['radioglobe_cities_auto_last']) ? $user->format_date((int) $config['radioglobe_cities_auto_last']) : $user->lang('RADIOGLOBE_NEVER'),
+		]);
+	}
+
+	protected function cities_step($update, $request, $user, $config, $form_key)
+	{
+		$json = new \phpbb\json_response();
+
+		if (!check_form_key($form_key))
+		{
+			$json->send(['error' => $user->lang('FORM_INVALID')]);
+		}
+
+		if ($request->variable('op', '') === 'start' && !$update->is_running())
+		{
+			if (!$update->start())
+			{
+				$json->send(['error' => $user->lang('RADIOGLOBE_STORE_NOT_WRITABLE')]);
+			}
+
+			$this->log_action($user, 'LOG_RADIOGLOBE_CITIES_STARTED');
+		}
+
+		$state = $update->get_state();
+
+		if ($state !== null)
+		{
+			// un passo per risposta: la barra si muove a ogni pezzo scaricato
+			$state = $update->run_for(20, 1);
+		}
+
+		if ($state !== null)
+		{
+			$json->send([
+				'done'		=> false,
+				'percent'	=> $update->get_percent($state),
+				'status'	=> $this->cities_progress_text($user, $state),
+			]);
+		}
+
+		if (!empty($config['radioglobe_cities_error']))
+		{
+			$json->send(['error' => $config['radioglobe_cities_error']]);
+		}
+
+		$json->send([
+			'done'		=> true,
+			'percent'	=> 100,
+			'status'	=> $user->lang('RADIOGLOBE_CITIES_DONE', number_format((int) $config['radioglobe_cities_count'], 0, ',', '.')),
+		]);
+	}
+
+	protected function cities_progress_text($user, array $state)
+	{
+		switch ($state['phase'])
+		{
+			case 'download':
+				return $user->lang('RADIOGLOBE_CITIES_PHASE_DOWNLOAD',
+					number_format($state['pos'] / 1000000, 1, ',', ''),
+					$state['total'] ? number_format($state['total'] / 1000000, 1, ',', '') : '?');
+
+			case 'extract':
+				return $user->lang('RADIOGLOBE_CITIES_PHASE_EXTRACT');
+
+			case 'parse':
+				return $user->lang('RADIOGLOBE_CITIES_PHASE_PARSE', number_format((int) $state['lines'], 0, ',', '.'));
+
+			default:
+				return $user->lang('RADIOGLOBE_CITIES_PHASE_BUILD');
+		}
+	}
+
+	/* ==================================================================
+	 * Rapporto di verifica
+	 * Una sezione per richiesta: la barra avanza a ogni sezione controllata.
+	 * ================================================================ */
+
+	protected function handle_report($phpbb_container, $request, $template, $user)
+	{
+		/** @var \salvocortesiano\radioglobe\service\health_check $check */
+		$check = $phpbb_container->get('salvocortesiano.radioglobe.health_check');
+		$form_key = 'radioglobe_report';
+
+		$user->add_lang_ext('salvocortesiano/radioglobe', 'health');
+		add_form_key($form_key);
+
+		if ($request->variable('action', '') === 'report_step' && $request->is_ajax())
+		{
+			$json = new \phpbb\json_response();
+
+			if (!check_form_key($form_key))
+			{
+				$json->send(['error' => $user->lang('FORM_INVALID')]);
+			}
+
+			$json->send(['section' => $check->run($request->variable('section', 0))]);
+		}
+
+		$names = [];
+
+		foreach (\salvocortesiano\radioglobe\service\health_check::SECTIONS as $key)
+		{
+			$names[] = str_replace('|', ' ', $user->lang('RADIOGLOBE_HC_SECTION_' . strtoupper($key)));
+		}
+
+		$template->assign_vars([
+			'U_ACTION'			=> $this->u_action,
+			'U_REPORT_STEP'		=> $this->u_action . '&amp;action=report_step',
+			'REPORT_SECTIONS'	=> $check->count(),
+			'REPORT_NAMES'		=> htmlspecialchars(implode('|', $names), ENT_COMPAT, 'UTF-8'),
+		]);
 	}
 
 	protected function log_action($user, $key)
@@ -682,8 +876,8 @@ class main_module
 			$template->assign_block_vars('comments', [
 				'ID'		=> (int) $row['comment_id'],
 				'USER'		=> get_username_string('full', (int) $row['user_id'], $row['username'] !== null ? $row['username'] : $user->lang('GUEST'), $row['user_colour']),
-				'STATION'	=> $row['station_name'] !== null ? $row['station_name'] : '#' . (int) $row['station_id'],
-				'COUNTRY'	=> (string) $row['country'],
+				'STATION'	=> $row['station_name'] !== null ? htmlspecialchars($row['station_name'], ENT_COMPAT, 'UTF-8') : '#' . (int) $row['station_id'],
+				'COUNTRY'	=> htmlspecialchars((string) $row['country'], ENT_COMPAT, 'UTF-8'),
 				'TIME'		=> $user->format_date((int) $row['comment_time']),
 				'TEXT'		=> nl2br($row['comment_text']),
 				'IP'		=> $row['comment_ip'],

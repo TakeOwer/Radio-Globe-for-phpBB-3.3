@@ -1,0 +1,194 @@
+<!-- INCLUDE overall_header.html -->
+<link rel="stylesheet" href="{RADIOGLOBE_ACP_CSS}" />
+
+<h1>{L_ACP_RADIOGLOBE_TITLE} &raquo; {L_ACP_RADIOGLOBE_CITIES}</h1>
+
+<!-- INCLUDE radioglobe_identity.html -->
+
+<p>{L_RADIOGLOBE_CITIES_INTRO}</p>
+
+<!-- IF not S_STORE_WRITABLE -->
+<div class="errorbox"><p>{L_RADIOGLOBE_STORE_NOT_WRITABLE}</p></div>
+<!-- ENDIF -->
+<!-- IF CITIES_OLD_TEXT -->
+<div class="errorbox notice"><p>{CITIES_OLD_TEXT}</p></div>
+<!-- ENDIF -->
+<!-- IF S_CITIES_AUTO_RUN -->
+<div class="rg-acp-note">{L_RADIOGLOBE_CITIES_AUTO_RUNNING}</div>
+<!-- ENDIF -->
+<!-- IF CITIES_ERROR -->
+<div class="errorbox"><p><strong>{L_RADIOGLOBE_SYNC_LAST_ERROR}{L_COLON}</strong> {CITIES_ERROR}</p></div>
+<!-- ENDIF -->
+
+<form id="rg_sync_form" method="post" action="{U_ACTION}" data-url="{U_CITIES_STEP}">
+<fieldset>
+	<legend><!-- IF S_CITIES_RUNNING -->{L_RADIOGLOBE_CITIES_RUNNING}<!-- ELSE -->{L_ACP_RADIOGLOBE_CITIES}<!-- ENDIF --></legend>
+
+	<dl>
+		<dt><label>{L_RADIOGLOBE_SYNC_PROGRESS}{L_COLON}</label></dt>
+		<dd>
+			<div class="rg-progress"><div id="rg_bar" class="rg-progress-bar" style="width: {CITIES_PERCENT}%;"><span id="rg_pct">{CITIES_PERCENT}%</span></div></div>
+			<p id="rg_status" class="rg-status"><!-- IF CITIES_PROGRESS -->{CITIES_PROGRESS}<!-- ELSE -->&nbsp;<!-- ENDIF --></p>
+		</dd>
+	</dl>
+
+	<p class="submit-buttons">
+		<input class="button1" type="submit" id="rg_sync_btn" name="start"
+			value="<!-- IF S_CITIES_RUNNING -->{L_RADIOGLOBE_SYNC_RESUME}<!-- ELSE -->{L_RADIOGLOBE_CITIES_START}<!-- ENDIF -->"
+			data-wait="{L_RADIOGLOBE_CITIES_WAIT}" />
+		<!-- IF S_CITIES_RUNNING -->
+		&nbsp;<input class="button2" type="submit" id="rg_cancel_btn" name="cancel" value="{L_RADIOGLOBE_SYNC_CANCEL}" />
+		<!-- ENDIF -->
+		<!-- IF S_CITIES_DOWNLOADED and not S_CITIES_RUNNING -->
+		&nbsp;<input class="button2" type="submit" id="rg_bundled_btn" name="bundled" value="{L_RADIOGLOBE_CITIES_BUNDLED}" data-confirm="{L_RADIOGLOBE_CITIES_BUNDLED_CONFIRM}" />
+		<!-- ENDIF -->
+	</p>
+	{S_FORM_TOKEN}
+</fieldset>
+</form>
+
+<fieldset>
+	<legend>{L_RADIOGLOBE_CITIES_STATUS}</legend>
+	<table class="table1 rg-stats">
+		<tbody>
+			<tr><td>{L_RADIOGLOBE_CITIES_SOURCE}</td><td><!-- IF S_CITIES_DOWNLOADED -->{L_RADIOGLOBE_CITIES_SOURCE_DOWNLOADED}<!-- ELSE -->{L_RADIOGLOBE_CITIES_SOURCE_BUNDLED}<!-- ENDIF --></td></tr>
+			<tr><td>{L_RADIOGLOBE_CITIES_DATE}</td><td><!-- IF CITIES_DATE -->{CITIES_DATE}<!-- ELSE -->-<!-- ENDIF --></td></tr>
+			<tr><td>{L_RADIOGLOBE_CITIES_COUNT}</td><td>{CITIES_COUNT}</td></tr>
+			<tr><td>{L_RADIOGLOBE_CITIES_UPDATED}</td><td>{CITIES_UPDATED}</td></tr>
+			<tr><td>{L_RADIOGLOBE_CITIES_LICENSE}</td><td><a href="https://www.geonames.org/" target="_blank" rel="noopener">GeoNames</a>, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a></td></tr>
+		</tbody>
+	</table>
+</fieldset>
+
+<form id="rg_cities_options" method="post" action="{U_ACTION}">
+<fieldset>
+	<legend>{L_RADIOGLOBE_CITIES_OPTIONS}</legend>
+	<dl>
+		<dt><label for="radioglobe_cities_notice">{L_RADIOGLOBE_CITIES_NOTICE}{L_COLON}</label><br /><span>{L_RADIOGLOBE_CITIES_NOTICE_EXPLAIN}</span></dt>
+		<dd>
+			<label><input type="radio" class="radio" id="radioglobe_cities_notice" name="radioglobe_cities_notice" value="1"<!-- IF S_CITIES_NOTICE --> checked="checked"<!-- ENDIF --> /> {L_YES}</label>
+			<label><input type="radio" class="radio" name="radioglobe_cities_notice" value="0"<!-- IF not S_CITIES_NOTICE --> checked="checked"<!-- ENDIF --> /> {L_NO}</label>
+		</dd>
+	</dl>
+	<dl>
+		<dt><label for="radioglobe_cities_max_months">{L_RADIOGLOBE_CITIES_MAX_MONTHS}{L_COLON}</label><br /><span>{L_RADIOGLOBE_CITIES_MAX_MONTHS_EXPLAIN}</span></dt>
+		<dd><input type="number" class="inputbox autowidth" id="radioglobe_cities_max_months" name="radioglobe_cities_max_months" value="{CITIES_MAX_MONTHS}" min="1" max="60" step="1" /> {L_RADIOGLOBE_MONTHS}</dd>
+	</dl>
+	<dl>
+		<dt><label for="radioglobe_cities_auto">{L_RADIOGLOBE_CITIES_AUTO}{L_COLON}</label><br /><span>{L_RADIOGLOBE_CITIES_AUTO_EXPLAIN}</span></dt>
+		<dd>
+			<label><input type="radio" class="radio" id="radioglobe_cities_auto" name="radioglobe_cities_auto" value="1"<!-- IF S_CITIES_AUTO --> checked="checked"<!-- ENDIF --> /> {L_YES}</label>
+			<label><input type="radio" class="radio" name="radioglobe_cities_auto" value="0"<!-- IF not S_CITIES_AUTO --> checked="checked"<!-- ENDIF --> /> {L_NO}</label>
+		</dd>
+	</dl>
+	<dl>
+		<dt><label>{L_RADIOGLOBE_CITIES_AUTO_LAST}{L_COLON}</label></dt>
+		<dd>{CITIES_AUTO_LAST}</dd>
+	</dl>
+	<p class="submit-buttons">
+		<input class="button1" type="submit" name="save_options" value="{L_SUBMIT}" />
+	</p>
+	{S_FORM_TOKEN}
+</fieldset>
+</form>
+
+<div class="rg-acp-note">{L_RADIOGLOBE_CITIES_NOTE}</div>
+
+<style type="text/css">
+.rg-progress { width: 100%; max-width: 480px; height: 22px; border: 1px solid #C5C5C5; border-radius: 4px; background-color: #EFEFEF; overflow: hidden; }
+.rg-progress-bar { width: 0; height: 100%; background-image: linear-gradient(to bottom, #6FBF73 0%, #3F9142 100%); color: #FFFFFF; font-size: 12px; font-weight: bold; line-height: 22px; text-align: center; transition: width .2s linear; white-space: nowrap; overflow: visible; }
+.rg-progress-bar.rg-error { background-image: linear-gradient(to bottom, #E07A7A 0%, #B03A3A 100%); }
+.rg-status { margin: 6px 0 0 0; font-size: 12px; color: #536482; }
+.rg-status.rg-error { color: #9E2A2A; font-weight: bold; }
+</style>
+
+<script type="text/javascript">
+(function () {
+	var form = document.getElementById('rg_sync_form');
+	if (!form) { return; }
+
+	var bundled = document.getElementById('rg_bundled_btn');
+	if (bundled) {
+		bundled.addEventListener('click', function (e) {
+			if (!window.confirm(bundled.getAttribute('data-confirm'))) { e.preventDefault(); }
+		});
+	}
+
+	if (!window.fetch) { return; }
+
+	var bar = document.getElementById('rg_bar'),
+		pct = document.getElementById('rg_pct'),
+		st = document.getElementById('rg_status'),
+		btn = document.getElementById('rg_sync_btn'),
+		cancel = document.getElementById('rg_cancel_btn');
+
+	function lock(state) {
+		btn.disabled = state;
+		if (cancel) { cancel.disabled = state; }
+		if (bundled) { bundled.disabled = state; }
+	}
+
+	function paint(p) {
+		p = Math.max(0, Math.min(100, parseInt(p, 10) || 0));
+		bar.style.width = p + '%';
+		bar.style.minWidth = '34px';
+		pct.textContent = p + '%';
+	}
+
+	function fail(msg) {
+		bar.classList.add('rg-error');
+		st.classList.add('rg-error');
+		st.textContent = msg;
+		lock(false);
+	}
+
+	function step(op) {
+		var data = new FormData(form);
+		data.append('op', op);
+
+		fetch(form.getAttribute('data-url').replace(/&amp;/g, '&'), {
+			method: 'POST',
+			body: data,
+			credentials: 'same-origin',
+			headers: { 'X-Requested-With': 'XMLHttpRequest' }
+		})
+		.then(function (r) {
+			return r.text().then(function (body) {
+				try { return JSON.parse(body); }
+				catch (e) {
+					var tmp = document.createElement('div');
+					tmp.innerHTML = body;
+					throw new Error((tmp.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 400) || ('HTTP ' + r.status));
+				}
+			});
+		})
+		.then(function (d) {
+			if (d.error) { fail(d.error); return; }
+
+			paint(d.percent);
+			st.textContent = d.status || '';
+
+			if (d.done) {
+				setTimeout(function () { window.location.href = form.getAttribute('action').replace(/&amp;/g, '&'); }, 2500);
+			} else {
+				setTimeout(function () { step('continue'); }, 150);
+			}
+		})
+		.catch(function (e) { fail('' + (e && e.message ? e.message : e)); });
+	}
+
+	btn.addEventListener('click', function (e) {
+		e.preventDefault();
+		lock(true);
+		bar.classList.remove('rg-error');
+		st.classList.remove('rg-error');
+		paint(0);
+		st.textContent = btn.getAttribute('data-wait');
+		step('start');
+	});
+
+	if (bar.style.width !== '0%') { bar.style.minWidth = '34px'; }
+})();
+</script>
+
+<!-- INCLUDE overall_footer.html -->

@@ -24,5 +24,6 @@ $lang = array_merge($lang, [
 	'ACL_U_RADIOGLOBE_FAVORITE'		=> 'Can add stations to favourites / playlist',
 	'ACL_U_RADIOGLOBE_COMMENT'		=> 'Can comment on radio stations',
 	'ACL_U_RADIOGLOBE_ANNOUNCE'		=> 'Their listening is shown to others (“is listening”)',
+	'ACL_M_RADIOGLOBE_STATIONS'		=> 'Can remove stations from the radio list',
 	'ACL_M_RADIOGLOBE_COMMENTS'		=> 'Can delete anyone’s station comments',
 ]);

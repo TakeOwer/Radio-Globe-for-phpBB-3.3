@@ -1,0 +1,233 @@
+<!-- INCLUDE overall_header.html -->
+<link rel="stylesheet" href="{RADIOGLOBE_ACP_CSS}" />
+
+<h1>{L_ACP_RADIOGLOBE_TITLE} &raquo; {L_ACP_RADIOGLOBE_REPORT}</h1>
+
+<!-- INCLUDE radioglobe_identity.html -->
+
+<p>{L_RADIOGLOBE_HC_INTRO}</p>
+
+<form id="rg_report_form" method="post" action="{U_ACTION}" data-url="{U_REPORT_STEP}" data-sections="{REPORT_SECTIONS}"
+	data-ok="{L_RADIOGLOBE_HC_STATUS_OK}" data-warn="{L_RADIOGLOBE_HC_STATUS_WARN}" data-error="{L_RADIOGLOBE_HC_STATUS_ERROR}"
+	data-all-ok="{L_RADIOGLOBE_HC_ALL_OK}" data-some-warn="{L_RADIOGLOBE_HC_SOME_WARN}" data-some-error="{L_RADIOGLOBE_HC_SOME_ERROR}"
+	data-summary="{L_RADIOGLOBE_HC_SUMMARY}" data-checking="{L_RADIOGLOBE_HC_CHECKING}" data-failed="{L_RADIOGLOBE_HC_FAILED}" data-copied="{L_RADIOGLOBE_HC_COPIED}"
+	data-names="{REPORT_NAMES}">
+<fieldset>
+	<legend>{L_ACP_RADIOGLOBE_REPORT}</legend>
+	<dl>
+		<dt><label>{L_RADIOGLOBE_SYNC_PROGRESS}{L_COLON}</label></dt>
+		<dd>
+			<div class="rg-progress"><div id="rg_bar" class="rg-progress-bar" style="width: 0%;"><span id="rg_pct">0%</span></div></div>
+			<p id="rg_status" class="rg-status">{L_RADIOGLOBE_HC_READY}</p>
+		</dd>
+	</dl>
+	<p class="submit-buttons">
+		<input class="button1" type="submit" id="rg_run_btn" name="run" value="{L_RADIOGLOBE_HC_RUN}" />
+		&nbsp;<input class="button2" type="button" id="rg_copy_btn" value="{L_RADIOGLOBE_HC_COPY}" disabled="disabled" />
+	</p>
+	{S_FORM_TOKEN}
+</fieldset>
+</form>
+
+<div id="rg_banner" class="rg-hc-banner" hidden><strong id="rg_banner_title"></strong><span id="rg_banner_text"></span></div>
+
+<div id="rg_sections"></div>
+
+<p class="rg-hc-legend">{L_RADIOGLOBE_HC_LEGEND}</p>
+
+<style type="text/css">
+.rg-progress { width: 100%; max-width: 480px; height: 22px; border: 1px solid #C5C5C5; border-radius: 4px; background-color: #EFEFEF; overflow: hidden; }
+.rg-progress-bar { width: 0; height: 100%; background-image: linear-gradient(to bottom, #6FBF73 0%, #3F9142 100%); color: #FFFFFF; font-size: 12px; font-weight: bold; line-height: 22px; text-align: center; transition: width .2s linear; white-space: nowrap; overflow: visible; }
+.rg-progress-bar.rg-error { background-image: linear-gradient(to bottom, #E07A7A 0%, #B03A3A 100%); }
+.rg-status { margin: 6px 0 0 0; font-size: 12px; color: #536482; }
+.rg-status.rg-error { color: #9E2A2A; font-weight: bold; }
+
+.rg-hc-banner { margin: 12px 0; padding: 10px 14px; color: #FFFFFF; text-align: center; background-color: #2E8B2E; }
+.rg-hc-banner.rg-warn { background-color: #C87F0A; }
+.rg-hc-banner.rg-bad { background-color: #B03A3A; }
+.rg-hc-banner strong { display: block; font-size: 1.25em; margin-bottom: 4px; }
+.rg-hc-banner span { font-size: .95em; }
+
+.rg-hc-section { margin-bottom: 12px; }
+.rg-hc-table { width: 100%; border-collapse: collapse; }
+.rg-hc-table td { padding: 5px 8px; border-bottom: 1px solid #EEEEEE; vertical-align: top; }
+.rg-hc-table tr:last-child td { border-bottom: 0; }
+.rg-hc-st { width: 70px; font-weight: bold; text-align: center; white-space: nowrap; }
+.rg-hc-label { width: 32%; }
+.rg-hc-value { font-family: Consolas, "Courier New", monospace; font-size: 1.05em; word-break: break-word; }
+.rg-hc-ok { color: #2E8B2E; }
+.rg-hc-warn { color: #C87F0A; }
+.rg-hc-error { color: #B03A3A; }
+.rg-hc-info { color: #999999; }
+.rg-hc-legend { color: #777777; font-size: .95em; }
+</style>
+
+<script type="text/javascript">
+(function () {
+	var form = document.getElementById('rg_report_form');
+	if (!form || !window.fetch) { return; }
+
+	var bar = document.getElementById('rg_bar'),
+		pct = document.getElementById('rg_pct'),
+		st = document.getElementById('rg_status'),
+		run = document.getElementById('rg_run_btn'),
+		copy = document.getElementById('rg_copy_btn'),
+		banner = document.getElementById('rg_banner'),
+		box = document.getElementById('rg_sections'),
+		total = parseInt(form.getAttribute('data-sections'), 10) || 0,
+		names = (form.getAttribute('data-names') || '').split('|'),
+		counts, report, started;
+
+	function attr(name) { return form.getAttribute('data-' + name) || ''; }
+
+	function fmt(text, values) {
+		var i = 0;
+		return text.replace(/%(\d+\$)?[sd]/g, function () { return values[i++]; });
+	}
+
+	function paint(p) {
+		p = Math.max(0, Math.min(100, Math.round(p)));
+		bar.style.width = p + '%';
+		bar.style.minWidth = '34px';
+		pct.textContent = p + '%';
+	}
+
+	function el(tag, cls, text) {
+		var n = document.createElement(tag);
+		if (cls) { n.className = cls; }
+		if (text !== undefined) { n.textContent = text; }
+		return n;
+	}
+
+	function render(section) {
+		var fs = el('fieldset', 'rg-hc-section'),
+			table = el('table', 'rg-hc-table'),
+			tbody = el('tbody');
+
+		fs.appendChild(el('legend', '', section.title));
+		report.push('== ' + section.title + ' ==');
+
+		section.rows.forEach(function (row) {
+			var status = row[0], tr = el('tr');
+			var label = status === 'info' ? '·' : attr(status);
+
+			tr.appendChild(el('td', 'rg-hc-st rg-hc-' + status, label));
+			tr.appendChild(el('td', 'rg-hc-label', row[1]));
+			tr.appendChild(el('td', 'rg-hc-value', row[2]));
+			tbody.appendChild(tr);
+
+			if (counts[status] !== undefined) { counts[status]++; }
+			report.push('[' + (status === 'info' ? '-' : attr(status)) + '] ' + row[1] + ': ' + row[2]);
+		});
+
+		table.appendChild(tbody);
+		fs.appendChild(table);
+		box.appendChild(fs);
+		report.push('');
+	}
+
+	function finish() {
+		var ms = Date.now() - started;
+		var cls = counts.error ? 'rg-bad' : (counts.warn ? 'rg-warn' : '');
+		var title = counts.error ? attr('some-error') : (counts.warn ? attr('some-warn') : attr('all-ok'));
+		var text = fmt(attr('summary'), [counts.ok, counts.warn, counts.error, ms.toLocaleString()]);
+
+		banner.className = 'rg-hc-banner ' + cls;
+		document.getElementById('rg_banner_title').textContent = title;
+		document.getElementById('rg_banner_text').textContent = text;
+		banner.hidden = false;
+		st.textContent = title + ' — ' + text;
+		report.unshift(title + ' — ' + text, '');
+		run.disabled = false;
+		copy.disabled = false;
+	}
+
+	function fail(msg) {
+		bar.classList.add('rg-error');
+		st.classList.add('rg-error');
+		st.textContent = attr('failed') + ': ' + msg;
+		run.disabled = false;
+	}
+
+	function step(i) {
+		if (i >= total) { paint(100); finish(); return; }
+
+		st.textContent = fmt(attr('checking'), [names[i] || '']);
+
+		var data = new FormData(form);
+		data.append('section', i);
+
+		fetch(form.getAttribute('data-url').replace(/&amp;/g, '&'), {
+			method: 'POST',
+			body: data,
+			credentials: 'same-origin',
+			headers: { 'X-Requested-With': 'XMLHttpRequest' }
+		})
+		.then(function (r) {
+			return r.text().then(function (body) {
+				try { return JSON.parse(body); }
+				catch (e) {
+					var tmp = document.createElement('div');
+					tmp.innerHTML = body;
+					throw new Error((tmp.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 400) || ('HTTP ' + r.status));
+				}
+			});
+		})
+		.then(function (d) {
+			if (d.error) { fail(d.error); return; }
+			render(d.section);
+			paint((i + 1) * 100 / total);
+			step(i + 1);
+		})
+		.catch(function (e) { fail('' + (e && e.message ? e.message : e)); });
+	}
+
+	function start() {
+		counts = { ok: 0, warn: 0, error: 0, info: 0 };
+		report = [];
+		started = Date.now();
+		box.textContent = '';
+		banner.hidden = true;
+		bar.classList.remove('rg-error');
+		st.classList.remove('rg-error');
+		run.disabled = true;
+		copy.disabled = true;
+		paint(0);
+		step(0);
+	}
+
+	run.addEventListener('click', function (e) {
+		e.preventDefault();
+		start();
+	});
+
+	copy.addEventListener('click', function () {
+		var text = report.join('\n');
+
+		function done() { st.textContent = attr('copied'); }
+
+		if (navigator.clipboard && navigator.clipboard.writeText) {
+			navigator.clipboard.writeText(text).then(done, function () { legacy(text); done(); });
+		} else {
+			legacy(text);
+			done();
+		}
+	});
+
+	function legacy(text) {
+		var ta = document.createElement('textarea');
+		ta.value = text;
+		ta.style.position = 'fixed';
+		ta.style.opacity = '0';
+		document.body.appendChild(ta);
+		ta.select();
+		try { document.execCommand('copy'); } catch (e) { /* niente appunti */ }
+		document.body.removeChild(ta);
+	}
+
+	// all'apertura della scheda la verifica parte da sola
+	start();
+})();
+</script>
+
+<!-- INCLUDE overall_footer.html -->

@@ -101,6 +101,13 @@
 			</dd>
 		</dl>
 		<dl>
+			<dt><label for="radioglobe_player_resume">{L_RADIOGLOBE_PLAYER_RESUME}:</label><br /><span>{L_RADIOGLOBE_PLAYER_RESUME_EXPLAIN}</span></dt>
+			<dd>
+				<label><input type="radio" class="radio" id="radioglobe_player_resume" name="radioglobe_player_resume" value="1"<!-- IF S_RADIOGLOBE_PLAYER_RESUME --> checked="checked"<!-- ENDIF --> /> {L_YES}</label>
+				<label><input type="radio" class="radio" name="radioglobe_player_resume" value="0"<!-- IF not S_RADIOGLOBE_PLAYER_RESUME --> checked="checked"<!-- ENDIF --> /> {L_NO}</label>
+			</dd>
+		</dl>
+		<dl>
 			<dt><label for="radioglobe_player_opacity">{L_RADIOGLOBE_PLAYER_OPACITY}:</label><br /><span>{L_RADIOGLOBE_PLAYER_OPACITY_EXPLAIN}</span></dt>
 			<dd>
 				<div class="rgp-slider">

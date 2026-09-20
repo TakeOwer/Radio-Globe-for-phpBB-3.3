@@ -65,6 +65,11 @@ salvocortesiano_radioglobe_listening:
     defaults: { _controller: salvocortesiano.radioglobe.controller.ajax:listening }
     methods: [GET]
 
+salvocortesiano_radioglobe_station_remove:
+    path: /radio/data/station/remove
+    defaults: { _controller: salvocortesiano.radioglobe.controller.ajax:station_remove }
+    methods: [POST]
+
 salvocortesiano_radioglobe_comment_delete:
     path: /radio/data/comment/delete
     defaults: { _controller: salvocortesiano.radioglobe.controller.ajax:comment_delete }

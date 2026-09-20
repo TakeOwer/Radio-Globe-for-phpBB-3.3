@@ -50,6 +50,31 @@ services:
             - '%tables.radioglobe_favorites%'
             - '%tables.radioglobe_comments%'
 
+    salvocortesiano.radioglobe.city_update:
+        class: salvocortesiano\radioglobe\service\city_update
+        arguments:
+            - '@config'
+            - '@salvocortesiano.radioglobe.http_client'
+            - '%core.root_path%'
+
+    salvocortesiano.radioglobe.health_check:
+        class: salvocortesiano\radioglobe\service\health_check
+        arguments:
+            - '@config'
+            - '@dbal.conn'
+            - '@salvocortesiano.radioglobe.http_client'
+            - '@salvocortesiano.radioglobe.station_repository'
+            - '@salvocortesiano.radioglobe.station_sync'
+            - '@salvocortesiano.radioglobe.city_update'
+            - '@controller.helper'
+            - '@user'
+            - '%core.root_path%'
+            - '%tables.radioglobe_stations%'
+            - '%tables.radioglobe_places%'
+            - '%tables.radioglobe_favorites%'
+            - '%tables.radioglobe_comments%'
+            - '%tables.radioglobe_listening%'
+
     salvocortesiano.radioglobe.nowplaying:
         class: salvocortesiano\radioglobe\service\nowplaying
         arguments:
@@ -80,6 +105,7 @@ services:
             - '@salvocortesiano.radioglobe.comment_repository'
             - '@salvocortesiano.radioglobe.nowplaying'
             - '@salvocortesiano.radioglobe.listen_repository'
+            - '@log'
             - '%core.root_path%'
             - '%core.php_ext%'
 
@@ -95,6 +121,27 @@ services:
             - '@salvocortesiano.radioglobe.comment_repository'
             - '@salvocortesiano.radioglobe.listen_repository'
             - '%core.root_path%'
+        tags:
+            - { name: event.listener }
+
+    salvocortesiano.radioglobe.cron.update_cities:
+        class: salvocortesiano\radioglobe\cron\update_cities
+        arguments:
+            - '@config'
+            - '@salvocortesiano.radioglobe.city_update'
+        calls:
+            - [set_name, [cron.task.salvocortesiano.radioglobe.update_cities]]
+        tags:
+            - { name: cron.task }
+
+    salvocortesiano.radioglobe.acp_listener:
+        class: salvocortesiano\radioglobe\event\acp_listener
+        arguments:
+            - '@config'
+            - '@template'
+            - '@user'
+            - '@salvocortesiano.radioglobe.city_update'
+            - '%core.php_ext%'
         tags:
             - { name: event.listener }
 

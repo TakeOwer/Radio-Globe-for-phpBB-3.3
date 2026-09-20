@@ -91,6 +91,8 @@ class main
 			'RADIOGLOBE_PLACE_COUNT'	=> (int) $this->config['radioglobe_sync_places'],
 			'S_RADIOGLOBE_EMPTY'		=> (int) $this->config['radioglobe_sync_count'] === 0,
 			'S_RADIOGLOBE_TILES'		=> $use_tiles,
+			// citta' GeoNames usate per collocare le stazioni senza coordinate (CC BY 4.0: va citata la fonte)
+			'S_RADIOGLOBE_NOGEO'		=> !isset($this->config['radioglobe_nogeo']) || !empty($this->config['radioglobe_nogeo']),
 			'S_RADIOGLOBE_CAN_FAV'		=> $this->can_favorite(),
 		]);
 
